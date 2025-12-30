@@ -1,9 +1,29 @@
 import { Link, useLocation } from 'react-router-dom';
 import { User, BrainCircuit } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth } from '../firebase';
 
 const Navbar = () => {
     const location = useLocation();
     const isActive = (path: string) => location.pathname === path;
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const handleLogin = async () => {
+        // Simple Google popup login for demonstration/MVP
+        try {
+            await signInWithPopup(auth, new GoogleAuthProvider());
+        } catch (error) {
+            console.error("Login failed", error);
+        }
+    };
 
     return (
         <nav style={{
@@ -45,27 +65,45 @@ const Navbar = () => {
 
                 {/* Profile / Menu */}
                 <div>
-                    <Link to="/profile" style={{
-                        padding: '8px 8px 8px 16px',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: 'var(--radius-full)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        transition: 'box-shadow 0.2s',
-                        cursor: 'pointer'
-                    }}
-                        onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
-                        onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
-                    >
-                        <span style={{ fontSize: '14px', fontWeight: 600 }}>Login</span>
-                        <div style={{
-                            width: '32px', height: '32px', backgroundColor: '#717171', borderRadius: '50%', color: 'white',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    {user ? (
+                        <Link to="/profile" style={{
+                            padding: '8px 8px 8px 16px',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: 'var(--radius-full)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            transition: 'box-shadow 0.2s',
+                            cursor: 'pointer'
+                        }}
+                            onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
+                            onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
+                        >
+                            <span style={{ fontSize: '14px', fontWeight: 600 }}>{user.displayName || 'Profile'}</span>
+                            <div style={{
+                                width: '32px', height: '32px', backgroundColor: '#717171', borderRadius: '50%', color: 'white',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
+                            }}>
+                                {user.photoURL ? <img src={user.photoURL} alt="User" style={{ width: '100%', height: '100%' }} /> : <User size={16} />}
+                            </div>
+                        </Link>
+                    ) : (
+                        <button onClick={handleLogin} style={{
+                            padding: '8px 16px',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: 'var(--radius-full)',
+                            backgroundColor: 'white',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
                         }}>
+                            <span>Login</span>
                             <User size={16} />
-                        </div>
-                    </Link>
+                        </button>
+                    )}
                 </div>
             </div>
         </nav>

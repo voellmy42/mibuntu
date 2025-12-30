@@ -5,14 +5,18 @@ let model: any = null;
 
 export const initGemini = (apiKey: string) => {
     genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 };
 
 export const generateLessonPlan = async (
     prompt: string,
     contextFiles: { name: string; content: string }[],
     lehrplanText: string,
-    apiKey?: string
+    apiKey?: string,
+    options?: {
+        cycle?: string;
+        wishes?: string;
+    }
 ): Promise<string> => {
     if (apiKey) {
         initGemini(apiKey);
@@ -26,9 +30,30 @@ export const generateLessonPlan = async (
         }
     }
 
+    const { cycle, wishes } = options || {};
+
     // Construct a rich prompt with context
+    // ... (unchanged prompt construction) ...
     let fullPrompt = `You are an expert educational assistant for Swiss teachers (Lehrplan 21).
-    Create a lesson plan based on the following request and materials.
+    Per user request, you MUST show your thinking process before giving the final answer.
+    Wrap your thinking process in <thinking> tags.
+    IMPORTANT: You must ALWAYS respond in German (High German, formatted for Swiss teachers).
+
+    STRICT GROUNDING RULES:
+    1. You must answer strictly based on the provided CONTEXT MATERIALS (User uploaded) and MANDATORY CURRICULUM (Lehrplan 21).
+    2. Do NOT use outside knowledge unless it is common educational knowledge (e.g. methods like "Think-Pair-Share") that supports the provided content.
+    3. If the answer cannot be found in the materials, state that you cannot find the information in the provided sources.
+
+    CITATION RULES:
+    1. You must cite your sources in the text.
+    2. Format: [Quelle: Dateiname] or [Lehrplan 21: Modulname].
+    3. At the end of the response, add a "Quellenverzeichnis" section listing the used sources.
+
+    TARGET AUDIENCE:
+    ${cycle ? `- Cycle/Class: ${cycle}` : '- General / Not specified'}
+    
+    USER WISHES / INSTRUCTIONS:
+    ${wishes ? `- ${wishes}` : '- None'}
 
     USER REQUEST: "${prompt}"
 
@@ -39,21 +64,29 @@ export const generateLessonPlan = async (
     ${lehrplanText ? lehrplanText.substring(0, 30000) : "No specific Lehrplan module selected."} ... (truncated)
 
     OUTPUT FORMAT:
-    Please verify that the lesson matches the age range/cycle if specified.
+    1. Start with a <thinking> block where you analyze the request, checking against the curriculum (Lehrplan 21) and materials. Plan the lesson structure here.
+    2. Close the </thinking> block.
+    3. Provide the final Lesson Plan in Markdown.
+
     Structure the lesson plan clearly with:
     1. Title & Topic
-    2. Competencies (Lehrplan 21 references)
+    2. Competencies (Lehrplan 21 references with citations)
     3. Learning Objectives
     4. Duration
     5. Materials needed
     6. Step-by-step Lesson Flow (Introduction, Core Activity, Conclusion)
     7. Differentiation options (easy/hard)
+    8. Quellenverzeichnis (List of used sources)
 
     Tone: Professional, encouraging, and practical for teachers.
+    
+    LANGUAGE: The final output (including the thinking block) MUST BE IN GERMAN.
+    
     Safe: Allow flash cards, slide deck specific content creation if asked.
     `;
 
     try {
+        console.log("Calling Gemini with model:", "gemini-2.0-flash-exp");
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         return response.text();

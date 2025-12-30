@@ -1,13 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { generateLessonPlan } from '../services/gemini';
 import { extractTextFromPdf } from '../utils/pdfUtils';
 import SourceSidebar, { type UploadedFile } from '../components/SourceSidebar';
 import ChatArea, { type Message } from '../components/ChatArea';
+import PlannerSetup from '../components/PlannerSetup';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebase';
 
 const Planner = () => {
     // API Key State
     const [apiKey, setApiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || '');
     const [showApiKeyInput, setShowApiKeyInput] = useState(!import.meta.env.VITE_GEMINI_API_KEY);
+
+    // Auth State
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    // Active Source State (Used for Chat)
+    const [activeCycle, setActiveCycle] = useState<string>('');
+    const [activeWishes, setActiveWishes] = useState<string>('');
+    const [isSetupComplete, setIsSetupComplete] = useState(false);
 
     // Active Source State (Used for Chat)
     const [activeSelectedModules, setActiveSelectedModules] = useState<string[]>(['ZH_DE_Fachbereich_NMG']);
@@ -21,9 +39,8 @@ const Planner = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isContextReloading, setIsContextReloading] = useState(false);
 
-    const [messages, setMessages] = useState<Message[]>([
-        { id: '1', sender: 'ai', text: 'Hallo! Ich bin Ihr Mibuntu KI-Assistent. Basierend auf dem Lehrplan 21 (NMG), was möchten Sie heute vorbereiten?' }
-    ]);
+
+    const [messages, setMessages] = useState<Message[]>([]);
 
     // Check for unapplied changes
     const hasUnappliedChanges =
@@ -77,13 +94,14 @@ const Planner = () => {
         await new Promise(resolve => setTimeout(resolve, 800));
 
         setActiveSelectedModules(draftSelectedModules);
+        // Apply draft files to active, fully replacing the list
         setActiveUploadedFiles(draftUploadedFiles);
 
         // Optional: Add a system message indicating context update
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
             sender: 'ai',
-            text: `Quellen aktualisiert (${draftSelectedModules.length} Module, ${draftUploadedFiles.length} Dateien). Ich bin bereit.`
+            text: `Quellen aktualisiert (${draftSelectedModules.length} Module, ${draftUploadedFiles.filter(f => f.isActive !== false).length} aktive Dateien). Ich bin bereit.`
         }]);
 
         setIsContextReloading(false);
@@ -113,9 +131,13 @@ const Planner = () => {
         return combinedText;
     };
 
-    const handleSend = async () => {
-        if (!input.trim()) return;
-        if (!apiKey) {
+    const processMessage = async (textInput: string) => {
+        if (!textInput.trim()) return;
+
+        const effectiveApiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY;
+
+        if (!effectiveApiKey) {
+            console.log("No API Key found");
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 sender: 'ai',
@@ -125,41 +147,120 @@ const Planner = () => {
             return;
         }
 
-        const userMsg: Message = { id: Date.now().toString(), sender: 'user', text: input };
+        const userMsg: Message = { id: Date.now().toString(), sender: 'user', text: textInput };
         setMessages(prev => [...prev, userMsg]);
-        setInput('');
         setIsProcessing(true);
 
         try {
+            console.log("Gathering context...");
             // 1. Gather Context (using ACTIVE sources)
+            // Filter only active files
+            const meaningfulActiveFiles = activeUploadedFiles.filter(f => f.isActive !== false);
             const lehrplanContext = await fetchLehrplanContext();
+
+            console.log("Context gathered, calling Gemini...");
 
             // 2. Call Gemini
             const generatedText = await generateLessonPlan(
                 userMsg.text,
-                activeUploadedFiles,
+                meaningfulActiveFiles,
                 lehrplanContext,
-                apiKey
+                effectiveApiKey,
+                {
+                    cycle: activeCycle,
+                    wishes: activeWishes
+                }
             );
+            console.log("Gemini response received");
+
+            // Parse output for <thinking> tags
+            let thought = "";
+            let cleanText = generatedText;
+
+            const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/;
+            const match = generatedText.match(thinkingRegex);
+
+            if (match) {
+                thought = match[1].trim();
+                cleanText = generatedText.replace(thinkingRegex, "").trim();
+            }
 
             const aiMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 sender: 'ai',
-                text: generatedText
+                text: cleanText,
+                thought: thought || undefined
             };
             setMessages(prev => [...prev, aiMsg]);
 
         } catch (error) {
-            console.error(error);
+            console.error("Error in handleSend:", error);
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 sender: 'ai',
-                text: 'Ein Fehler ist aufgetreten. Bitte überprüfen Sie Ihren API Key und versuchen Sie es erneut.'
+                text: 'Ein Fehler ist aufgetreten. Bitte überprüfen Sie die Konsole für Details.'
             }]);
         } finally {
             setIsProcessing(false);
         }
     };
+
+    const handleSend = () => {
+        processMessage(input);
+        setInput('');
+    };
+
+    const handleToggleFile = (index: number) => {
+        setDraftUploadedFiles(prev => {
+            const newFiles = [...prev];
+            // Toggle logic: if undefined, treat as true -> becomes false.
+            const currentState = newFiles[index].isActive !== false;
+            newFiles[index] = { ...newFiles[index], isActive: !currentState };
+            return newFiles;
+        });
+    };
+
+    const handleSetupStart = async (config: { selectedModules: string[], cycle: string, wishes: string }) => {
+        setActiveSelectedModules(config.selectedModules);
+        setDraftSelectedModules(config.selectedModules);
+        setActiveCycle(config.cycle);
+        setActiveWishes(config.wishes);
+        setIsSetupComplete(true);
+
+        // If user provided wishes, treat it as the first prompt
+        if (config.wishes.trim()) {
+            // Logic handled by useEffect
+        } else {
+            setMessages([{
+                id: '1',
+                sender: 'ai',
+                text: 'Hallo! Ich bin Ihr Mibuntu KI-Assistent. Ich habe den Lehrplan 21 für Sie geladen. Wie kann ich helfen?'
+            }]);
+        }
+    };
+
+    // Effect to trigger initial wish processing once setup is complete and state is ready
+    useEffect(() => {
+        if (isSetupComplete && activeWishes && messages.length === 0) {
+            processMessage(activeWishes);
+        }
+    }, [isSetupComplete, activeWishes]);
+
+
+    const handleReset = () => {
+        setIsSetupComplete(false);
+        setActiveCycle('');
+        setActiveWishes('');
+        setMessages([]);
+        setActiveSelectedModules([]);
+        setDraftSelectedModules([]);
+        setDraftUploadedFiles([]); // Also reset active? User choice.
+        setActiveUploadedFiles([]);
+    };
+
+    if (!isSetupComplete) {
+        return <PlannerSetup onStart={handleSetupStart} />;
+    }
 
     return (
         <div style={{ height: 'calc(100vh - 80px)', display: 'flex', backgroundColor: '#FAFAFA' }}>
@@ -169,6 +270,7 @@ const Planner = () => {
                 uploadedFiles={draftUploadedFiles}
                 onUpload={handleFileUpload}
                 onRemoveFile={handleRemoveFile}
+                onToggleFile={handleToggleFile}
                 apiKey={apiKey}
                 onApiKeyChange={setApiKey}
                 showApiKeyInput={showApiKeyInput}
@@ -176,6 +278,8 @@ const Planner = () => {
                 isProcessing={isProcessing}
                 onApplyChanges={handleApplyChanges}
                 hasUnappliedChanges={hasUnappliedChanges}
+                isChatMode={true}
+                onReset={handleReset}
             />
 
             <ChatArea
@@ -185,6 +289,7 @@ const Planner = () => {
                 onSend={handleSend}
                 isProcessing={isProcessing}
                 isContextReloading={isContextReloading}
+                user={user}
             />
         </div>
     );

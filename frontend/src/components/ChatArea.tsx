@@ -1,10 +1,15 @@
 import React, { useRef, useEffect } from 'react';
-import { Send, Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { Send, Sparkles, Loader2, RefreshCw, Download } from 'lucide-react';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { auth } from '../firebase';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export interface Message {
     id: string;
     sender: 'user' | 'ai';
     text: string;
+    thought?: string;
 }
 
 interface ChatAreaProps {
@@ -14,6 +19,7 @@ interface ChatAreaProps {
     onSend: () => void;
     isProcessing: boolean;
     isContextReloading: boolean;
+    user: any;
 }
 
 const ChatArea: React.FC<ChatAreaProps> = ({
@@ -22,7 +28,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     setInput,
     onSend,
     isProcessing,
-    isContextReloading
+    isContextReloading,
+    user
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -32,10 +39,77 @@ const ChatArea: React.FC<ChatAreaProps> = ({
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, isProcessing, isContextReloading]);
+        console.log("ChatArea User State:", user);
+    }, [messages, isProcessing, isContextReloading, user]);
+
+    const handleDownload = () => {
+        if (!user) {
+            // Trigger login if not logged in
+            alert("Bitte loggen Sie sich ein, um den Lektionsplan herunterzuladen.");
+            try {
+                signInWithPopup(auth, new GoogleAuthProvider());
+            } catch (error) {
+                console.error("Login failed", error);
+            }
+            return;
+        }
+
+        // Logic to download as markdown
+        const planText = messages
+            .filter(m => m.sender === 'ai')
+            .map(m => m.text)
+            .join('\n\n---\n\n');
+
+        if (!planText) {
+            alert("Kein Plan zum Herunterladen vorhanden.");
+            return;
+        }
+
+        const blob = new Blob([planText], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Lektionsplan-${new Date().toISOString().slice(0, 10)}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     return (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+            {/* Header for Download Action */}
+            <div style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                padding: '20px',
+                zIndex: 10
+            }}>
+                {messages.some(m => m.sender === 'ai' && m.id !== '1') && (
+                    <button
+                        onClick={handleDownload}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            backgroundColor: 'white',
+                            border: '1px solid var(--color-border)',
+                            padding: '8px 16px',
+                            borderRadius: '100px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            boxShadow: 'var(--shadow-sm)'
+                        }}
+                    >
+                        <Download size={16} />
+                        {user ? "Herunterladen" : "Login zum Downloaden"}
+                    </button>
+                )}
+            </div>
+
+
             {/* Main Chat Area */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '32px 32px 100px 32px' }}> {/* Padding bottom for input area */}
                 <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -50,19 +124,62 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                                     <Sparkles size={18} color="white" />
                                 </div>
                             )}
-                            <div style={{
-                                backgroundColor: msg.sender === 'user' ? '#F3F4F6' : 'white',
-                                color: msg.sender === 'user' ? 'var(--color-text-primary)' : 'var(--color-text-primary)',
-                                padding: '16px 24px',
-                                borderRadius: '24px',
-                                borderTopLeftRadius: msg.sender === 'ai' ? '4px' : '24px',
-                                borderTopRightRadius: msg.sender === 'user' ? '4px' : '24px',
-                                boxShadow: msg.sender === 'ai' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
-                                whiteSpace: 'pre-wrap',
-                                lineHeight: '1.6',
-                                fontSize: '15px'
-                            }}>
-                                {msg.text}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '100%' }}>
+                                {/* Thinking Block */}
+                                {msg.thought && (
+                                    <details style={{
+                                        backgroundColor: '#fff',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '12px',
+                                        padding: '12px',
+                                        fontSize: '13px',
+                                        color: '#6b7280',
+                                        cursor: 'pointer',
+                                        marginBottom: '4px'
+                                    }}>
+                                        <summary style={{ fontWeight: 500, userSelect: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Sparkles size={14} />
+                                            Mibuntu denkt nach...
+                                        </summary>
+                                        <div style={{ marginTop: '8px', whiteSpace: 'pre-wrap', lineHeight: '1.5', paddingLeft: '20px', borderLeft: '2px solid #e5e7eb' }}>
+                                            {msg.thought}
+                                        </div>
+                                    </details>
+                                )}
+
+
+
+                                <div style={{
+                                    backgroundColor: msg.sender === 'user' ? '#F3F4F6' : 'white',
+                                    color: msg.sender === 'user' ? 'var(--color-text-primary)' : 'var(--color-text-primary)',
+                                    padding: '16px 24px',
+                                    borderRadius: '24px',
+                                    borderTopLeftRadius: msg.sender === 'ai' ? '4px' : '24px',
+                                    borderTopRightRadius: msg.sender === 'user' ? '4px' : '24px',
+                                    boxShadow: msg.sender === 'ai' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                                    fontSize: '15px',
+                                    overflowWrap: 'anywhere'
+                                }}>
+                                    {msg.sender === 'ai' ? (
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                h1: ({ node, ...props }) => <h1 style={{ fontSize: '1.4em', fontWeight: 700, margin: '16px 0 8px 0' }} {...props} />,
+                                                h2: ({ node, ...props }) => <h2 style={{ fontSize: '1.2em', fontWeight: 600, margin: '14px 0 8px 0' }} {...props} />,
+                                                h3: ({ node, ...props }) => <h3 style={{ fontSize: '1.1em', fontWeight: 600, margin: '12px 0 6px 0' }} {...props} />,
+                                                ul: ({ node, ...props }) => <ul style={{ paddingLeft: '20px', margin: '8px 0' }} {...props} />,
+                                                ol: ({ node, ...props }) => <ol style={{ paddingLeft: '20px', margin: '8px 0' }} {...props} />,
+                                                li: ({ node, ...props }) => <li style={{ margin: '4px 0' }} {...props} />,
+                                                p: ({ node, ...props }) => <p style={{ margin: '8px 0', lineHeight: 1.6 }} {...props} />,
+                                                strong: ({ node, ...props }) => <strong style={{ fontWeight: 600 }} {...props} />,
+                                            }}
+                                        >
+                                            {msg.text}
+                                        </ReactMarkdown>
+                                    ) : (
+                                        <div style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))}

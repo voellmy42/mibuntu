@@ -5,6 +5,7 @@ import { MODULES } from '../data/lehrplan';
 export interface UploadedFile {
     name: string;
     content: string;
+    isActive?: boolean;
 }
 
 interface SourceSidebarProps {
@@ -13,6 +14,7 @@ interface SourceSidebarProps {
     uploadedFiles: UploadedFile[];
     onUpload: (files: FileList | null) => void;
     onRemoveFile: (index: number) => void;
+    onToggleFile?: (index: number) => void;
     apiKey: string;
     onApiKeyChange: (key: string) => void;
     showApiKeyInput: boolean;
@@ -20,6 +22,8 @@ interface SourceSidebarProps {
     isProcessing: boolean;
     onApplyChanges: () => void;
     hasUnappliedChanges: boolean;
+    isChatMode?: boolean;
+    onReset?: () => void;
 }
 
 const SourceSidebar: React.FC<SourceSidebarProps> = ({
@@ -28,13 +32,16 @@ const SourceSidebar: React.FC<SourceSidebarProps> = ({
     uploadedFiles,
     onUpload,
     onRemoveFile,
+    onToggleFile,
     apiKey,
     onApiKeyChange,
     showApiKeyInput,
     setShowApiKeyInput,
     isProcessing,
     onApplyChanges,
-    hasUnappliedChanges
+    hasUnappliedChanges,
+    isChatMode = false,
+    onReset
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,12 +55,52 @@ const SourceSidebar: React.FC<SourceSidebarProps> = ({
             height: '100%',
         }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)', backgroundColor: 'white' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--color-text-primary)' }}>
-                    <FileText size={20} /> Quellen
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--color-text-primary)' }}>
+                        <FileText size={20} /> Quellen
+                    </h3>
+                    {isChatMode && onReset && (
+                        <button
+                            onClick={onReset}
+                            style={{
+                                fontSize: '12px',
+                                color: 'var(--color-brand)',
+                                background: 'transparent',
+                                border: '1px solid var(--color-brand)',
+                                borderRadius: '6px',
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                fontWeight: 500
+                            }}
+                        >
+                            Neuer Plan
+                        </button>
+                    )}
+                </div>
+
                 <p style={{ fontSize: '13px', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
-                    Wähle Materialien für den Planer.
+                    {isChatMode ? 'Verwalten Sie Ihre zusätzlichen Quellen.' : 'Wähle Materialien für den Planer.'}
                 </p>
+
+                {/* Chat Mode Context Badge */}
+                {isChatMode && (
+                    <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {MODULES.filter(m => selectedModuleIds.includes(m.id)).map(module => (
+                            <span key={module.id} style={{
+                                fontSize: '11px',
+                                padding: '4px 8px',
+                                borderRadius: '100px',
+                                backgroundColor: module.color + '20',
+                                color: module.color,
+                                fontWeight: 600,
+                                border: `1px solid ${module.color}40`
+                            }}>
+                                {module.name}
+                            </span>
+                        ))}
+                    </div>
+                )}
+
 
                 {/* API Key Toggle/Input */}
                 <div style={{ marginTop: '16px' }}>
@@ -106,8 +153,17 @@ const SourceSidebar: React.FC<SourceSidebarProps> = ({
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '10px',
-                                boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                opacity: file.isActive === false ? 0.6 : 1
                             }}>
+                                <input
+                                    type="checkbox"
+                                    checked={file.isActive !== false} // Default true
+                                    onChange={(e) => {
+                                        if (onToggleFile) onToggleFile(idx);
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                />
                                 <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                     <FileText size={14} color="#6B7280" />
                                 </div>
@@ -154,53 +210,55 @@ const SourceSidebar: React.FC<SourceSidebarProps> = ({
                     </div>
                 </div>
 
-                {/* Lehrplan Modules */}
-                <div>
-                    <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        Lehrplan 21 Module
-                    </div>
-                    <div style={{ display: 'grid', gap: '8px' }}>
-                        {MODULES.map(module => {
-                            const isSelected = selectedModuleIds.includes(module.id);
-                            return (
-                                <div
-                                    key={module.id}
-                                    onClick={() => onToggleModule(module.id)}
-                                    style={{
-                                        padding: '10px 12px',
-                                        borderRadius: '8px',
-                                        backgroundColor: isSelected ? 'white' : 'transparent',
-                                        border: `1px solid ${isSelected ? module.color : 'transparent'}`,
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '12px',
-                                        transition: 'all 0.2s',
-                                        boxShadow: isSelected ? `0 2px 4px ${module.color}15` : 'none'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (!isSelected) e.currentTarget.style.backgroundColor = '#f3f4f6';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
-                                    }}
-                                >
-                                    <div style={{
-                                        width: '18px', height: '18px', borderRadius: '5px',
-                                        border: `2px solid ${isSelected ? module.color : '#D1D5DB'}`,
-                                        backgroundColor: isSelected ? module.color : 'transparent',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        transition: 'all 0.2s'
-                                    }}>
-                                        {isSelected && <CheckCircle2 size={14} color="white" />}
+                {/* Lehrplan Modules - Only show in non-chat mode (Setup) */}
+                {!isChatMode && (
+                    <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Lehrplan 21 Module
+                        </div>
+                        <div style={{ display: 'grid', gap: '8px' }}>
+                            {MODULES.map(module => {
+                                const isSelected = selectedModuleIds.includes(module.id);
+                                return (
+                                    <div
+                                        key={module.id}
+                                        onClick={() => onToggleModule(module.id)}
+                                        style={{
+                                            padding: '10px 12px',
+                                            borderRadius: '8px',
+                                            backgroundColor: isSelected ? 'white' : 'transparent',
+                                            border: `1px solid ${isSelected ? module.color : 'transparent'}`,
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            transition: 'all 0.2s',
+                                            boxShadow: isSelected ? `0 2px 4px ${module.color}15` : 'none'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!isSelected) e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                                        }}
+                                    >
+                                        <div style={{
+                                            width: '18px', height: '18px', borderRadius: '5px',
+                                            border: `2px solid ${isSelected ? module.color : '#D1D5DB'}`,
+                                            backgroundColor: isSelected ? module.color : 'transparent',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            transition: 'all 0.2s'
+                                        }}>
+                                            {isSelected && <CheckCircle2 size={14} color="white" />}
+                                        </div>
+                                        <span style={{ fontWeight: isSelected ? 600 : 400, color: isSelected ? 'var(--color-text-primary)' : 'var(--color-text-secondary)' }}>{module.name}</span>
                                     </div>
-                                    <span style={{ fontWeight: isSelected ? 600 : 400, color: isSelected ? 'var(--color-text-primary)' : 'var(--color-text-secondary)' }}>{module.name}</span>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Footer Action */}
