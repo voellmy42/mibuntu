@@ -1,127 +1,98 @@
-import { Link, useLocation } from 'react-router-dom';
-import { User, BrainCircuit } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '../firebase';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { LogOut, User as UserIcon } from 'lucide-react';
+import '../styles/Navbar.css';
 
-const Navbar = () => {
-    const location = useLocation();
-    const isActive = (path: string) => location.pathname === path;
-    const [user, setUser] = useState<any>(null);
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-        });
-        return () => unsubscribe();
-    }, []);
+function Navbar() {
+    const navigate = useNavigate();
+    const { currentUser, userProfile, logout, signInWithGoogle } = useAuth();
 
     const handleLogin = async () => {
-        // Simple Google popup login for demonstration/MVP
         try {
-            await signInWithPopup(auth, new GoogleAuthProvider());
+            await signInWithGoogle();
+            // After login, if they have no profile, redirect to onboarding? 
+            // Or typically we stay on the page. But user requested:
+            // "If user logged in and profile incomplete -> Onboarding".
+            // Since context updates async, check logic might be tricky here.
+            // But simpler: Login Popup closes -> User is on Home.
+            // If they try to click Planner -> handleAction takes over.
+            // But "Anmelden" specifically often signifies just "Sign In".
+            // We can optionally check:
+            // const user = auth.currentUser;
+            // if (user) fetchProfile...
+            // For now, let's just Sign In. The UI will update to show "User Profile"
         } catch (error) {
             console.error("Login failed", error);
         }
     };
 
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/');
+        } catch (error) {
+            console.error("Failed to log out", error);
+        }
+    };
+
     return (
-        <nav style={{
-            position: 'sticky',
-            top: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(10px)',
-            borderBottom: '1px solid var(--color-border)',
-            height: '80px',
-            display: 'flex',
-            alignItems: 'center',
-            zIndex: 1000
-        }}>
-            <div className="container" style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                width: '100%'
-            }}>
-                {/* Logo */}
-                <Link to="/" style={{
-                    fontSize: '24px',
-                    fontWeight: 800,
-                    color: 'var(--color-brand)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    letterSpacing: '-0.5px'
-                }}>
-                    <BrainCircuit size={32} />
-                    Mibuntu
+        <nav className="navbar">
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '1280px', margin: '0 auto' }}>
+                <Link to="/" className="navbar-logo">
+                    <span className="logo-text">Mibuntu</span>
                 </Link>
 
-                {/* Center Nav */}
-                <div style={{ display: 'flex', gap: '32px' }}>
-                    <NavLink to="/planner" label="KI-Planer" active={isActive('/planner')} />
-                    <NavLink to="/marketplace" label="Marktplatz" active={isActive('/marketplace')} />
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                    <div className="navbar-links">
+                        <Link to="/planner" className="nav-link">Planer</Link>
+                        <Link to="/marketplace" className="nav-link">Marktplatz</Link>
+                    </div>
                 </div>
 
-                {/* Profile / Menu */}
-                <div>
-                    {user ? (
-                        <Link to="/profile" style={{
-                            padding: '8px 8px 8px 16px',
-                            border: '1px solid var(--color-border)',
-                            borderRadius: 'var(--radius-full)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            transition: 'box-shadow 0.2s',
-                            cursor: 'pointer'
-                        }}
-                            onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
-                            onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
-                        >
-                            <span style={{ fontSize: '14px', fontWeight: 600 }}>{user.displayName || 'Profile'}</span>
-                            <div style={{
-                                width: '32px', height: '32px', backgroundColor: '#717171', borderRadius: '50%', color: 'white',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
-                            }}>
-                                {user.photoURL ? <img src={user.photoURL} alt="User" style={{ width: '100%', height: '100%' }} /> : <User size={16} />}
+                <div className="navbar-actions">
+                    {currentUser ? (
+                        <div className="navbar-user-section">
+                            <div className="navbar-user-pill">
+                                <div className="user-info">
+                                    <span className="user-name">{currentUser.displayName}</span>
+                                    <span className="user-role">
+                                        {userProfile?.role === 'teacher' ? 'Lehrperson' :
+                                            userProfile?.role === 'school_rep' ? 'Schulleitung' : 'Gast'}
+                                    </span>
+                                </div>
+                                {currentUser.photoURL ? (
+                                    <img
+                                        src={currentUser.photoURL}
+                                        alt="Profile"
+                                        className="user-avatar"
+                                    />
+                                ) : (
+                                    <div className="user-avatar-placeholder">
+                                        <UserIcon size={16} />
+                                    </div>
+                                )}
                             </div>
-                        </Link>
+
+                            <button
+                                onClick={handleLogout}
+                                className="logout-button"
+                                title="Abmelden"
+                            >
+                                <LogOut size={20} />
+                            </button>
+                        </div>
                     ) : (
-                        <button onClick={handleLogin} style={{
-                            padding: '8px 16px',
-                            border: '1px solid var(--color-border)',
-                            borderRadius: 'var(--radius-full)',
-                            backgroundColor: 'white',
-                            fontSize: '14px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                        }}>
-                            <span>Login</span>
-                            <User size={16} />
+                        <button
+                            className="navbar-cta-button"
+                            onClick={handleLogin}
+                        >
+                            Anmelden
                         </button>
                     )}
                 </div>
             </div>
         </nav>
     );
-};
-
-const NavLink = ({ to, label, active }: { to: string, label: string, active: boolean }) => (
-    <Link to={to} style={{
-        fontWeight: 600,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        color: active ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-        paddingBottom: '4px',
-        borderBottom: active ? '2px solid var(--color-text-primary)' : '2px solid transparent'
-    }}>
-        {label}
-    </Link>
-);
+}
 
 export default Navbar;

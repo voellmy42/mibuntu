@@ -47,7 +47,7 @@ const SourceSidebar: React.FC<SourceSidebarProps> = ({
 
     return (
         <div style={{
-            width: '350px',
+            width: '100%', // Changed from 350px to 100% to allow parent control
             borderRight: '1px solid var(--color-border)',
             backgroundColor: '#F9FAFB',
             display: 'flex',

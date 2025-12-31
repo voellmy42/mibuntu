@@ -1,0 +1,169 @@
+/* Navbar.css */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 80px;
+    /* Standard height */
+    padding: 0 var(--spacing-xl);
+    /* Match container padding */
+    background-color: var(--color-bg-primary);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    text-decoration: none;
+    color: var(--color-brand);
+    /* Restore brand color */
+    transition: opacity var(--transition-fast);
+}
+
+.navbar-logo:hover {
+    opacity: 0.8;
+}
+
+.logo-text {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--color-brand);
+}
+
+.navbar-links {
+    display: flex;
+    gap: var(--spacing-lg);
+}
+
+.nav-link {
+    text-decoration: none;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    font-size: var(--font-size-sm);
+    transition: color var(--transition-fast);
+}
+
+.nav-link:hover {
+    color: var(--color-text-primary);
+}
+
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.navbar-cta-button {
+    padding: 10px 20px;
+    background-color: var(--color-brand);
+    color: white;
+    border: none;
+    border-radius: var(--radius-full);
+    /* Airbnb style pill buttons */
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+
+.navbar-cta-button:hover {
+    background-color: var(--color-brand-hover);
+}
+
+.navbar-user-section {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.navbar-user-pill {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 4px 6px 4px 16px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-primary);
+    transition: box-shadow var(--transition-fast);
+    cursor: default;
+}
+
+.navbar-user-pill:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+    line-height: 1.2;
+}
+
+.user-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.user-role {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
+
+.user-avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--color-bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-tertiary);
+}
+
+.logout-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    padding: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--transition-fast);
+}
+
+.logout-button:hover {
+    color: var(--color-text-primary);
+}
+
+@media (max-width: 768px) {
+    .user-info {
+        display: none;
+    }
+
+    .navbar-user-pill {
+        padding: 4px;
+        border: none;
+    }
+
+    .navbar-user-pill:hover {
+        box-shadow: none;
+    }
+}

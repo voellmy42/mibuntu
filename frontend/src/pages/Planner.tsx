@@ -3,9 +3,22 @@ import { generateLessonPlan, generateDossier } from '../services/gemini';
 import { extractTextFromPdf } from '../utils/pdfUtils';
 import SourceSidebar, { type UploadedFile } from '../components/SourceSidebar';
 import ChatArea, { type Message } from '../components/ChatArea';
+import OutputView from '../components/OutputView'; // New Component
 import PlannerSetup from '../components/PlannerSetup';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../firebase';
+import { BookOpen, MessageSquare, Download } from 'lucide-react'; // Icons
+
+// Hook for mobile detection
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    return isMobile;
+};
 
 const Planner = () => {
     // API Key State
@@ -21,6 +34,10 @@ const Planner = () => {
         });
         return () => unsubscribe();
     }, []);
+
+    // Mobile State
+    const isMobile = useIsMobile();
+    const [activeTab, setActiveTab] = useState<'sources' | 'chat' | 'output'>('chat');
 
     // Active Source State (Used for Chat)
     const [activeCycle, setActiveCycle] = useState<string>('');
@@ -108,6 +125,8 @@ const Planner = () => {
         }]);
 
         setIsContextReloading(false);
+        // On mobile, switch to chat after applying
+        if (isMobile) setActiveTab('chat');
     };
 
 
@@ -228,7 +247,7 @@ const Planner = () => {
         // Find last AI message
         const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai');
         if (!lastAiMessage) {
-            alert("Keine Lektion gefunden, die umgewandelt werden kann.");
+            alert("Noch kein Lektionsplan vorhanden.");
             return;
         }
 
@@ -280,7 +299,7 @@ const Planner = () => {
             setMessages([{
                 id: '1',
                 sender: 'ai',
-                text: 'Hallo! Ich bin Ihr Mibuntu KI-Assistent. Ich habe den Lehrplan 21 für Sie geladen. Wie kann ich helfen?'
+                text: 'Hallo! Ich bin Ihr Mibuntu KI-Assistent. Wie kann ich helfen?'
             }]);
         }
     };
@@ -308,37 +327,132 @@ const Planner = () => {
         return <PlannerSetup onStart={handleSetupStart} />;
     }
 
-    return (
-        <div style={{ height: 'calc(100vh - 80px)', display: 'flex', backgroundColor: '#FAFAFA' }}>
-            <SourceSidebar
-                selectedModuleIds={draftSelectedModules}
-                onToggleModule={handleToggleModule}
-                uploadedFiles={draftUploadedFiles}
-                onUpload={handleFileUpload}
-                onRemoveFile={handleRemoveFile}
-                onToggleFile={handleToggleFile}
-                apiKey={apiKey}
-                onApiKeyChange={setApiKey}
-                showApiKeyInput={showApiKeyInput}
-                setShowApiKeyInput={setShowApiKeyInput}
-                isProcessing={isProcessing}
-                onApplyChanges={handleApplyChanges}
-                hasUnappliedChanges={hasUnappliedChanges}
-                isChatMode={true}
-                onReset={handleReset}
-            />
+    // Has AI Content for Output Tab check
+    const hasAiContent = messages.some(m => m.sender === 'ai');
 
-            <ChatArea
-                messages={messages}
-                input={input}
-                setInput={setInput}
-                onSend={handleSend}
-                isProcessing={isProcessing}
-                isContextReloading={isContextReloading}
-                user={user}
-                onGenerateDossier={handleGenerateDossier}
-                isGeneratingDossier={isGeneratingDossier}
-            />
+    return (
+        <div style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', backgroundColor: '#FAFAFA' }}>
+            {/* Main Content Area */}
+            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+
+                {/* Module 1: Sources */}
+                {(activeTab === 'sources' || !isMobile) && (
+                    <div style={{
+                        width: isMobile ? '100%' : '350px',
+                        flexShrink: 0,
+                        borderRight: isMobile ? 'none' : '1px solid var(--color-border)',
+                        height: '100%',
+                        zIndex: 10
+                    }}>
+                        <SourceSidebar
+                            selectedModuleIds={draftSelectedModules}
+                            onToggleModule={handleToggleModule}
+                            uploadedFiles={draftUploadedFiles}
+                            onUpload={handleFileUpload}
+                            onRemoveFile={handleRemoveFile}
+                            onToggleFile={handleToggleFile}
+                            apiKey={apiKey}
+                            onApiKeyChange={setApiKey}
+                            showApiKeyInput={showApiKeyInput}
+                            setShowApiKeyInput={setShowApiKeyInput}
+                            isProcessing={isProcessing}
+                            onApplyChanges={handleApplyChanges}
+                            hasUnappliedChanges={hasUnappliedChanges}
+                            isChatMode={true}
+                            onReset={handleReset}
+                        />
+                    </div>
+                )}
+
+                {/* Module 2: Chat */}
+                {(activeTab === 'chat' || !isMobile) && (
+                    <div style={{ flex: 1, height: '100%', position: 'relative', overflow: 'hidden' }}>
+                        <ChatArea
+                            messages={messages}
+                            input={input}
+                            setInput={setInput}
+                            onSend={handleSend}
+                            isProcessing={isProcessing}
+                            isContextReloading={isContextReloading}
+                            user={user}
+                            onGenerateDossier={handleGenerateDossier}
+                            isGeneratingDossier={isGeneratingDossier}
+                        />
+                    </div>
+                )}
+
+                {/* Module 3: Output (Mobile Only view for checking, or Modal on desktop?) 
+                     For now, let's keep it as a tab on mobile. On desktop, currently it's a button in Chat.
+                     We can allow the OutputView to be shown on Desktop if we want a 3-column layout?
+                     The user asked for "Three Tab layout where a mobile user can swipe".
+                     Let's disable OutputView on Desktop for now unless we want to replace the button.
+                     Actually, the prompt implies "Module 3: Output" is a distinct module. 
+                     Let's render it if activeTab is output. On Desktop, maybe we don't show it or we show it as a modal?
+                     For simplicity: Hide on Desktop (since button is in Chat) OR toggle it.
+                     Let's stick to Mobile strict tabs.
+                 */}
+                {isMobile && activeTab === 'output' && (
+                    <div style={{ width: '100%', height: '100%', zIndex: 10, backgroundColor: 'white' }}>
+                        <OutputView
+                            onGenerateDossier={handleGenerateDossier}
+                            isGeneratingDossier={isGeneratingDossier}
+                            hasContent={hasAiContent}
+                        />
+                    </div>
+                )}
+
+            </div>
+
+            {/* Mobile Tab Navigation */}
+            {isMobile && (
+                <div style={{
+                    height: '60px',
+                    backgroundColor: 'white',
+                    borderTop: '1px solid var(--color-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-around',
+                    flexShrink: 0,
+                    zIndex: 50 // Above content
+                }}>
+                    <button
+                        onClick={() => setActiveTab('sources')}
+                        style={{
+                            background: 'none', border: 'none',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                            color: activeTab === 'sources' ? 'var(--color-brand)' : '#9CA3AF',
+                            fontSize: '10px', fontWeight: 600
+                        }}
+                    >
+                        <BookOpen size={20} />
+                        Quellen
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('chat')}
+                        style={{
+                            background: 'none', border: 'none',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                            color: activeTab === 'chat' ? 'var(--color-brand)' : '#9CA3AF',
+                            fontSize: '10px', fontWeight: 600
+                        }}
+                    >
+                        <MessageSquare size={20} />
+                        Chat
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('output')}
+                        style={{
+                            background: 'none', border: 'none',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                            color: activeTab === 'output' ? 'var(--color-brand)' : '#9CA3AF',
+                            fontSize: '10px', fontWeight: 600
+                        }}
+                    >
+                        <Download size={20} />
+                        Export
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

@@ -1,8 +1,77 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useEffect } from 'react';
 import { BrainCircuit, Briefcase, ChevronRight, FileText, Zap } from 'lucide-react';
 
-const Home = () => {
+function Home() {
+
     const navigate = useNavigate();
+    const { currentUser, userProfile, loading, signInWithGoogle } = useAuth(); // Assuming signInWithGoogle is exposed
+
+    // Remove auto-redirect useEffect
+
+    const handleNavigation = async (path: string) => {
+        if (!currentUser) {
+            try {
+                await signInWithGoogle();
+                // After successful login, the AuthContext state will update.
+                // We can't await context update here easily without complex effect logic, 
+                // but usually the user is "signed in" now.
+                // The re-render will show the user as logged in.
+
+                // Ideally, we wait for profile to be determined...
+                // But for a simple flow:
+                // If they just logged in, they might not have a profile.
+                // We should check on NEXT interaction or simply let them click again?
+                // Better: check auth state change or use a callback. 
+                // For this request: "Direct Login Popup -> Then Onboarding".
+            } catch (error) {
+                console.error("Login failed", error);
+                return;
+            }
+        }
+
+        // Check profile status (after potential login)
+        // Since state update is async, this logic might run before context updates if we just awaited the promise.
+        // However, standard Firebase signInWithPopup resolves when auth is done. 
+        // We might need to manually check `auth.currentUser` if context is lagging?
+        // But let's assume if they were already logged in, we proceed.
+        // If they just logged in, they stay on Home but now have access.
+        // Actually, the user wants "Direct Login -> Onboarding Flow".
+
+        // Let's rely on the useEffect in App.tsx or ProtectedRoute to handle "Must have profile" 
+        // BUT we want to avoid auto-redirect from Home.
+        // So we explicitly check here.
+    };
+
+    // Revised approach:
+    // If not logged in -> Trigger Login.
+    // If logged in -> Check Profile.
+    //    If Complete -> Go to Path.
+    //    If Incomplete -> Go to Onboarding.
+
+    const handleAction = async (targetPath: string) => {
+        if (!currentUser) {
+            try {
+                await signInWithGoogle();
+                // After await, we are logged in. We can't immediately check userProfile from context 
+                // because it needs a fetch. 
+                // But we can redirect to the target path.
+                // If the target path is protected (like /planner), 
+                // the ProtectedRoute will handle the "Missing Profile" check!
+                navigate(targetPath);
+            } catch (error) {
+                console.error("Login cancelled or failed", error);
+            }
+        } else {
+            // Already logged in
+            if (!userProfile?.role) {
+                navigate('/onboarding');
+            } else {
+                navigate(targetPath);
+            }
+        }
+    };
 
     return (
         <>
@@ -45,15 +114,16 @@ const Home = () => {
                         Mibuntu verbindet intelligente Lektionsplanung mit einem flexiblen Stellvertretungs-Marktplatz.
                     </p>
                     <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
-                        <button className="btn-primary" onClick={() => navigate('/planner')}>
+                        <button className="btn-primary" onClick={() => handleAction('/planner')}>
                             Unterricht planen
                         </button>
-                        <button className="btn-secondary" onClick={() => navigate('/marketplace')} style={{
+                        <button className="btn-secondary" onClick={() => handleAction('/marketplace')} style={{
                             padding: '14px 24px',
                             borderRadius: 'var(--radius-md)',
                             fontWeight: 600,
                             border: '1px solid var(--color-border)',
-                            backgroundColor: 'white'
+                            backgroundColor: 'white',
+                            cursor: 'pointer'
                         }}>
                             Job finden
                         </button>
