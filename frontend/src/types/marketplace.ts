@@ -26,4 +26,9 @@ export interface JobApplication {
     message: string;
     appliedAt: number;
     status: 'pending' | 'accepted' | 'rejected';
+
+    // Snapshot data for easier list display
+    jobTitle?: string;
+    jobLocation?: string;
+    jobDate?: string;
 }

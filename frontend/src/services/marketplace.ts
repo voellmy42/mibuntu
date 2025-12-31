@@ -5,7 +5,9 @@ import {
     getDocs,
     query,
     where,
-    orderBy
+    orderBy,
+    updateDoc,
+    doc
 } from 'firebase/firestore';
 import type { JobListing, JobApplication } from '../types/marketplace';
 
@@ -31,12 +33,31 @@ export const marketplaceService = {
         }
     },
 
+    // Get jobs created by a specific user (school rep)
+    getJobsByUser: async (userId: string): Promise<JobListing[]> => {
+        try {
+            const q = query(
+                collection(db, JOBS_COLLECTION),
+                where("userId", "==", userId),
+                orderBy('createdAt', 'desc')
+            );
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as JobListing));
+        } catch (error) {
+            console.error("Error fetching user jobs:", error);
+            return [];
+        }
+    },
+
     // Create a new job listing
     createJob: async (job: Omit<JobListing, 'id' | 'createdAt'>): Promise<string> => {
         try {
             const docRef = await addDoc(collection(db, JOBS_COLLECTION), {
                 ...job,
-                createdAt: Date.now() // Use server timestamp in real app, client TS for now
+                createdAt: Date.now()
             });
             return docRef.id;
         } catch (error) {
@@ -48,6 +69,8 @@ export const marketplaceService = {
     // Apply to a job
     applyToJob: async (application: Omit<JobApplication, 'id' | 'appliedAt' | 'status'>): Promise<string> => {
         try {
+            // Check for existing application first?
+            // For now, simple add.
             const docRef = await addDoc(collection(db, APPLICATIONS_COLLECTION), {
                 ...application,
                 appliedAt: Date.now(),
@@ -74,6 +97,34 @@ export const marketplaceService = {
         } catch (error) {
             console.error("Error getting applications:", error);
             return [];
+        }
+    },
+
+    // Get applications made by a specific teacher
+    getApplicationsByUser: async (userId: string): Promise<JobApplication[]> => {
+        try {
+            const q = query(
+                collection(db, APPLICATIONS_COLLECTION),
+                where("applicantId", "==", userId)
+            );
+            const snapshot = await getDocs(q);
+            // Sort client side or composite index
+            return snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() } as JobApplication))
+                .sort((a, b) => b.appliedAt - a.appliedAt);
+        } catch (error) {
+            console.error("Error getting user applications:", error);
+            return [];
+        }
+    },
+
+    updateApplicationStatus: async (appId: string, status: 'accepted' | 'rejected'): Promise<void> => {
+        try {
+            const appRef = doc(db, APPLICATIONS_COLLECTION, appId);
+            await updateDoc(appRef, { status });
+        } catch (error) {
+            console.error("Error updating application status:", error);
+            throw error;
         }
     }
 };
