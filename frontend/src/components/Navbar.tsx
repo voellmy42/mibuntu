@@ -52,7 +52,7 @@ function Navbar() {
                 <div className="navbar-actions">
                     {currentUser ? (
                         <div className="navbar-user-section">
-                            <div className="navbar-user-pill">
+                            <Link to="/profile" className="navbar-user-pill" style={{ textDecoration: 'none' }}>
                                 <div className="user-info">
                                     <span className="user-name">{currentUser.displayName}</span>
                                     <span className="user-role">
@@ -71,7 +71,7 @@ function Navbar() {
                                         <UserIcon size={16} />
                                     </div>
                                 )}
-                            </div>
+                            </Link>
 
                             <button
                                 onClick={handleLogout}

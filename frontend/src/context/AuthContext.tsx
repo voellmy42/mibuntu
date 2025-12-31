@@ -17,6 +17,10 @@ export interface UserProfile {
     photoURL: string | null;
     role?: 'teacher' | 'school_rep';
     createdAt?: any;
+    canton?: string;
+    subjects?: string[];
+    levels?: string[];
+    schoolName?: string;
     bio?: string;
     // Add other profile fields as needed
 }

@@ -7,6 +7,7 @@ import Planner from './pages/Planner';
 import Marketplace from './pages/Marketplace';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/planner" element={<Planner />} />
               <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
           </Routes>
         </div>
