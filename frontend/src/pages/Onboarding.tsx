@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
-import { GraduationCap, School, Check, ChevronRight } from 'lucide-react';
+import { GraduationCap, School, ChevronRight } from 'lucide-react';
 import { SWISS_CANTONS, SCHOOL_LEVELS, SUBJECTS_LP21 } from '../data/common';
 
 import '../styles/Onboarding.css';

@@ -106,7 +106,8 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onJobCreated }
                 pay: formData.pay,
                 urgent: formData.urgent,
                 description: formData.description,
-                imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' // default image
+                imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80', // default image
+                status: 'open'
             };
 
             await marketplaceService.createJob(newJob);

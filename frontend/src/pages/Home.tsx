@@ -1,48 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useEffect } from 'react';
 import { BrainCircuit, Briefcase, ChevronRight, FileText, Zap } from 'lucide-react';
 
 function Home() {
 
     const navigate = useNavigate();
-    const { currentUser, userProfile, loading, signInWithGoogle } = useAuth(); // Assuming signInWithGoogle is exposed
-
-    // Remove auto-redirect useEffect
-
-    const handleNavigation = async (path: string) => {
-        if (!currentUser) {
-            try {
-                await signInWithGoogle();
-                // After successful login, the AuthContext state will update.
-                // We can't await context update here easily without complex effect logic, 
-                // but usually the user is "signed in" now.
-                // The re-render will show the user as logged in.
-
-                // Ideally, we wait for profile to be determined...
-                // But for a simple flow:
-                // If they just logged in, they might not have a profile.
-                // We should check on NEXT interaction or simply let them click again?
-                // Better: check auth state change or use a callback. 
-                // For this request: "Direct Login Popup -> Then Onboarding".
-            } catch (error) {
-                console.error("Login failed", error);
-                return;
-            }
-        }
-
-        // Check profile status (after potential login)
-        // Since state update is async, this logic might run before context updates if we just awaited the promise.
-        // However, standard Firebase signInWithPopup resolves when auth is done. 
-        // We might need to manually check `auth.currentUser` if context is lagging?
-        // But let's assume if they were already logged in, we proceed.
-        // If they just logged in, they stay on Home but now have access.
-        // Actually, the user wants "Direct Login -> Onboarding Flow".
-
-        // Let's rely on the useEffect in App.tsx or ProtectedRoute to handle "Must have profile" 
-        // BUT we want to avoid auto-redirect from Home.
-        // So we explicitly check here.
-    };
+    const { currentUser, userProfile, signInWithGoogle } = useAuth();
 
     // Revised approach:
     // If not logged in -> Trigger Login.

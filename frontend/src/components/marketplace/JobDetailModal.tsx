@@ -43,7 +43,7 @@ const JobDetailModal = ({ job, onClose }: JobDetailModalProps) => {
 
             // If accepted, close the job
             if (status === 'accepted' && job.id) {
-                await marketplaceService.updateJob(job.id, { status: 'filled' });
+                await marketplaceService.updateJob(job.id, { status: 'filled' } as const);
             }
 
             // Optimistic update

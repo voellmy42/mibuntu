@@ -6,7 +6,7 @@ import JobDetailModal from '../components/marketplace/JobDetailModal';
 import { SUBJECTS, CYCLES, CANTONS } from '../data/constants';
 import { SWISS_LOCATIONS } from '../data/swiss_locations';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, MapPin, Building, ChevronRight, Inbox, FileText } from 'lucide-react';
+import { Calendar, MapPin, Inbox, FileText } from 'lucide-react';
 
 const Marketplace = () => {
     const { currentUser, userProfile } = useAuth();
@@ -68,7 +68,7 @@ const Marketplace = () => {
     }, [activeTab, currentUser]);
 
     // Apply Handler (Passed to Modal)
-    const handleApply = (job: JobListing) => {
+    const handleApply = (_: JobListing) => {
         // This is now handled inside the modal logic mainly, 
         // but we can refresh data or close modal here if needed.
         // The modal now does the actual service call.
