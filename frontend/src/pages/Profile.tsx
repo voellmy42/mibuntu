@@ -225,6 +225,46 @@ const Profile: React.FC = () => {
                         </button>
                     </div>
                 </form>
+
+            </div>
+
+            <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid var(--color-border)' }}>
+                <h3 style={{ fontSize: '16px', color: '#6b7280', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Developer Zone
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f3f4f6', padding: '16px', borderRadius: '8px' }}>
+                    <div>
+                        <p style={{ fontWeight: 600, margin: '0 0 4px 0' }}>Rollen-Wechsler</p>
+                        <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
+                            Wechseln Sie die Rolle, um beide Seiten (Lehrer/Schule) zu testen.
+                        </p>
+                    </div>
+                    <button
+                        onClick={async () => {
+                            if (!currentUser) return;
+                            const newRole = userProfile.role === 'teacher' ? 'school_rep' : 'teacher';
+                            if (confirm(`Rolle wirklich zu "${newRole === 'teacher' ? 'Lehrperson' : 'Schulleitung'}" wechseln?`)) {
+                                try {
+                                    await updateDoc(doc(db, 'users', currentUser.uid), { role: newRole });
+                                    await refreshProfile();
+                                } catch (e) {
+                                    alert("Fehler beim Wechseln der Rolle.");
+                                }
+                            }
+                        }}
+                        style={{
+                            backgroundColor: 'white',
+                            border: '1px solid var(--color-border)',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: '14px'
+                        }}
+                    >
+                        Zu {userProfile.role === 'teacher' ? 'Schulleitung' : 'Lehrperson'} wechseln
+                    </button>
+                </div>
             </div>
         </div>
     );
