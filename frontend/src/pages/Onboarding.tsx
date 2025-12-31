@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { GraduationCap, School, Check, ChevronRight } from 'lucide-react';
+import { SWISS_CANTONS, SCHOOL_LEVELS, SUBJECTS_LP21 } from '../data/common';
 
 import '../styles/Onboarding.css';
 
@@ -18,9 +19,10 @@ const Onboarding: React.FC = () => {
 
     // Form Data
     const [canton, setCanton] = useState('');
-    const [subjects, setSubjects] = useState('');
+    const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
     const [schoolName, setSchoolName] = useState('');
     const [levels, setLevels] = useState<string[]>([]);
+    const [bio, setBio] = useState('');
 
     useEffect(() => {
         if (userProfile?.role && step === 1 && !saving) {
@@ -52,8 +54,9 @@ const Onboarding: React.FC = () => {
             };
 
             if (selectedRole === 'teacher') {
-                profileData.subjects = subjects.split(',').map(s => s.trim()).filter(Boolean);
+                profileData.subjects = selectedSubjects;
                 profileData.levels = levels;
+                profileData.bio = bio;
             } else if (selectedRole === 'school_rep') {
                 profileData.schoolName = schoolName;
             }
@@ -78,6 +81,14 @@ const Onboarding: React.FC = () => {
             prev.includes(level)
                 ? prev.filter(l => l !== level)
                 : [...prev, level]
+        );
+    };
+
+    const toggleSubject = (subject: string) => {
+        setSelectedSubjects(prev =>
+            prev.includes(subject)
+                ? prev.filter(s => s !== subject)
+                : [...prev, subject]
         );
     };
 
@@ -145,32 +156,36 @@ const Onboarding: React.FC = () => {
                                 required
                             >
                                 <option value="">Bitte wählen...</option>
-                                <option value="AG">Aargau</option>
-                                <option value="BE">Bern</option>
-                                <option value="BL">Basel-Landschaft</option>
-                                <option value="BS">Basel-Stadt</option>
-                                <option value="ZH">Zürich</option>
-                                <option value="other">Andere</option>
+                                {SWISS_CANTONS.map(c => (
+                                    <option key={c.code} value={c.code}>{c.name}</option>
+                                ))}
                             </select>
                         </div>
 
                         {selectedRole === 'teacher' && (
                             <>
                                 <div className="form-group">
-                                    <label className="form-label">Fächer (kommagetrennt)</label>
-                                    <input
-                                        type="text"
-                                        placeholder="z.B. Mathematik, Deutsch, Sport"
-                                        className="form-input"
-                                        value={subjects}
-                                        onChange={(e) => setSubjects(e.target.value)}
-                                        required
-                                    />
+                                    <label className="form-label">Fächer (Mehrfachauswahl möglich)</label>
+                                    <div className="level-pills">
+                                        {SUBJECTS_LP21.map((subject) => (
+                                            <button
+                                                key={subject}
+                                                type="button"
+                                                onClick={() => toggleSubject(subject)}
+                                                className={`level-pill ${selectedSubjects.includes(subject) ? 'active' : ''}`}
+                                            >
+                                                {subject}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                                        Ausgewählt: {selectedSubjects.length > 0 ? selectedSubjects.join(', ') : 'Keine'}
+                                    </div>
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Stufen</label>
                                     <div className="level-pills">
-                                        {['Zyklus 1', 'Zyklus 2', 'Zyklus 3', 'Gymnasium'].map((lvl) => (
+                                        {SCHOOL_LEVELS.map((lvl) => (
                                             <button
                                                 key={lvl}
                                                 type="button"
@@ -181,6 +196,16 @@ const Onboarding: React.FC = () => {
                                             </button>
                                         ))}
                                     </div>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Über mich (Optional)</label>
+                                    <textarea
+                                        placeholder="Erzählen Sie kurz etwas über Ihre Erfahrung und Motivation..."
+                                        className="form-input"
+                                        style={{ minHeight: '100px', resize: 'vertical' }}
+                                        value={bio}
+                                        onChange={(e) => setBio(e.target.value)}
+                                    />
                                 </div>
                             </>
                         )}

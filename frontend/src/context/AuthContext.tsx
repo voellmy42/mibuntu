@@ -17,6 +17,7 @@ export interface UserProfile {
     photoURL: string | null;
     role?: 'teacher' | 'school_rep';
     createdAt?: any;
+    bio?: string;
     // Add other profile fields as needed
 }
 
