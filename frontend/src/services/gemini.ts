@@ -95,3 +95,57 @@ export const generateLessonPlan = async (
         throw error;
     }
 };
+
+export const generateDossier = async (
+    lessonPlanText: string,
+    apiKey?: string
+): Promise<string> => {
+    if (apiKey) {
+        initGemini(apiKey);
+    }
+
+    if (!model) {
+        if (import.meta.env.VITE_GEMINI_API_KEY) {
+            initGemini(import.meta.env.VITE_GEMINI_API_KEY);
+        } else {
+            throw new Error("Gemini API Key is missing.");
+        }
+    }
+
+    const prompt = `
+    You are an expert educational consultant.
+    Your task is to convert the following LESSON PLAN into a PROFESSIONAL DOSSIER / SLIDE DECK structure.
+
+    INPUT LESSON PLAN:
+    ${lessonPlanText}
+
+    INSTRUCTIONS:
+    1. Create a structured document suitable for download (Markdown format).
+    2. It should serve as a complete package for the teacher to take into the classroom or present.
+    3. Include the following sections:
+        - **Cover Page Details**: Title, Subject, Duration, Date (placeholder).
+        - **Management Summary**: Brief overview of the lesson goals.
+        - **Slides / Content**: Break down the lesson into logical "Slides" or "Boards". Content should be bulleted and clear.
+        - **Teacher Notes**: Specific reminders or hidden details for the teacher (not for students).
+        - **Material Checklist**: Clear list of what is needed.
+
+    OUTPUT FORMAT:
+    - Pure Markdown.
+    - Use clear headings (#, ##).
+    - Use Horizontal Rules (---) to separate "Slides" or major sections.
+    - Tone: Professional, clean, and structured.
+    - Language: German (Swiss Standard German context).
+
+    DO NOT output <thinking> tags for this specific task, just the document content.
+    `;
+
+    try {
+        console.log("Generating Dossier...");
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        return response.text();
+    } catch (error) {
+        console.error("Gemini dossier generation error:", error);
+        throw error;
+    }
+};

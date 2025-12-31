@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Send, Sparkles, Loader2, RefreshCw, Download } from 'lucide-react';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from '../firebase';
+
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -20,6 +19,8 @@ interface ChatAreaProps {
     isProcessing: boolean;
     isContextReloading: boolean;
     user: any;
+    onGenerateDossier?: () => void;
+    isGeneratingDossier?: boolean;
 }
 
 const ChatArea: React.FC<ChatAreaProps> = ({
@@ -29,7 +30,9 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     onSend,
     isProcessing,
     isContextReloading,
-    user
+    user,
+    onGenerateDossier,
+    isGeneratingDossier
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -42,39 +45,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         console.log("ChatArea User State:", user);
     }, [messages, isProcessing, isContextReloading, user]);
 
-    const handleDownload = () => {
-        if (!user) {
-            // Trigger login if not logged in
-            alert("Bitte loggen Sie sich ein, um den Lektionsplan herunterzuladen.");
-            try {
-                signInWithPopup(auth, new GoogleAuthProvider());
-            } catch (error) {
-                console.error("Login failed", error);
-            }
-            return;
-        }
-
-        // Logic to download as markdown
-        const planText = messages
-            .filter(m => m.sender === 'ai')
-            .map(m => m.text)
-            .join('\n\n---\n\n');
-
-        if (!planText) {
-            alert("Kein Plan zum Herunterladen vorhanden.");
-            return;
-        }
-
-        const blob = new Blob([planText], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Lektionsplan-${new Date().toISOString().slice(0, 10)}.md`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
+    // Note: handleDownload removed or repurposed. Now we use onGenerateDossier.
 
     return (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
@@ -88,7 +59,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({
             }}>
                 {messages.some(m => m.sender === 'ai' && m.id !== '1') && (
                     <button
-                        onClick={handleDownload}
+                        onClick={onGenerateDossier}
+                        disabled={isGeneratingDossier}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -97,14 +69,19 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                             border: '1px solid var(--color-border)',
                             padding: '8px 16px',
                             borderRadius: '100px',
-                            cursor: 'pointer',
+                            cursor: isGeneratingDossier ? 'wait' : 'pointer',
                             fontSize: '14px',
                             fontWeight: 500,
-                            boxShadow: 'var(--shadow-sm)'
+                            boxShadow: 'var(--shadow-sm)',
+                            opacity: isGeneratingDossier ? 0.7 : 1
                         }}
                     >
-                        <Download size={16} />
-                        {user ? "Herunterladen" : "Login zum Downloaden"}
+                        {isGeneratingDossier ? (
+                            <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                            <Download size={16} />
+                        )}
+                        {isGeneratingDossier ? "Erstelle Dossier..." : "Dossier erstellen"}
                     </button>
                 )}
             </div>

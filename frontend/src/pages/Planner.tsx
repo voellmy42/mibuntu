@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { generateLessonPlan } from '../services/gemini';
+import { generateLessonPlan, generateDossier } from '../services/gemini';
 import { extractTextFromPdf } from '../utils/pdfUtils';
 import SourceSidebar, { type UploadedFile } from '../components/SourceSidebar';
 import ChatArea, { type Message } from '../components/ChatArea';
 import PlannerSetup from '../components/PlannerSetup';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../firebase';
 
 const Planner = () => {
@@ -38,6 +38,9 @@ const Planner = () => {
     const [input, setInput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isContextReloading, setIsContextReloading] = useState(false);
+
+    // New State for Dossier Generation
+    const [isGeneratingDossier, setIsGeneratingDossier] = useState(false);
 
 
     const [messages, setMessages] = useState<Message[]>([]);
@@ -210,6 +213,49 @@ const Planner = () => {
         setInput('');
     };
 
+    const handleGenerateDossier = async () => {
+        if (!user) {
+            // Auth check
+            alert("Bitte loggen Sie sich ein.");
+            try {
+                await signInWithPopup(auth, new GoogleAuthProvider());
+            } catch (error) {
+                console.error("Login failed", error);
+                return;
+            }
+        }
+
+        // Find last AI message
+        const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai');
+        if (!lastAiMessage) {
+            alert("Keine Lektion gefunden, die umgewandelt werden kann.");
+            return;
+        }
+
+        setIsGeneratingDossier(true);
+        try {
+            const effectiveApiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY;
+            const dossierContent = await generateDossier(lastAiMessage.text, effectiveApiKey);
+
+            // Download
+            const blob = new Blob([dossierContent], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Lektions_Dossier-${new Date().toISOString().slice(0, 10)}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error("Dossier generation failed", error);
+            alert("Fehler beim Erstellen des Dossiers.");
+        } finally {
+            setIsGeneratingDossier(false);
+        }
+    };
+
     const handleToggleFile = (index: number) => {
         setDraftUploadedFiles(prev => {
             const newFiles = [...prev];
@@ -290,6 +336,8 @@ const Planner = () => {
                 isProcessing={isProcessing}
                 isContextReloading={isContextReloading}
                 user={user}
+                onGenerateDossier={handleGenerateDossier}
+                isGeneratingDossier={isGeneratingDossier}
             />
         </div>
     );
