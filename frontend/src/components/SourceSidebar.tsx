@@ -159,7 +159,7 @@ const SourceSidebar: React.FC<SourceSidebarProps> = ({
                                 <input
                                     type="checkbox"
                                     checked={file.isActive !== false} // Default true
-                                    onChange={(e) => {
+                                    onChange={() => {
                                         if (onToggleFile) onToggleFile(idx);
                                     }}
                                     style={{ cursor: 'pointer' }}
