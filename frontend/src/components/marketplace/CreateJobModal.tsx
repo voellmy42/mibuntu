@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { marketplaceService } from '../../services/marketplace';
 import type { JobListing } from '../../types/marketplace';
 import { DayPicker, type DateRange } from 'react-day-picker';
@@ -15,6 +16,7 @@ interface CreateJobModalProps {
 }
 
 const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onJobCreated }) => {
+    const { currentUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -91,7 +93,7 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onJobCreated }
 
             // Construct the Job object
             const newJob: Omit<JobListing, 'id' | 'createdAt'> = {
-                userId: 'demo_user_123', // Hardcoded for demo
+                userId: currentUser?.uid || '',
                 title: formData.title,
                 canton: formData.canton,
                 subject: formData.subject,
