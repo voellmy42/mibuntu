@@ -48,8 +48,27 @@ const JobDetailModal = ({ job, onClose }: JobDetailModalProps) => {
 
     if (hasApplied) {
         return (
-            <div className="modal-overlay" onClick={onClose}>
-                <div className="modal-content" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', padding: '60px 40px' }}>
+            <div className="modal-overlay" onClick={onClose} style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 1000
+            }}>
+                <div className="modal-content" onClick={e => e.stopPropagation()} style={{
+                    textAlign: 'center',
+                    padding: '60px 40px',
+                    backgroundColor: 'white',
+                    borderRadius: '16px',
+                    width: '100%',
+                    maxWidth: '600px',
+                    boxShadow: 'var(--shadow-xl)'
+                }}>
                     <div style={{ color: 'green', marginBottom: '20px' }}>
                         <CheckCircle size={64} />
                     </div>
@@ -66,9 +85,38 @@ const JobDetailModal = ({ job, onClose }: JobDetailModalProps) => {
     }
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px' }}>
-                <button className="modal-close" onClick={onClose}>
+        <div className="modal-overlay" onClick={onClose} style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+        }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{
+                maxWidth: '700px',
+                backgroundColor: 'white',
+                padding: '24px',
+                borderRadius: '16px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                position: 'relative',
+                boxShadow: 'var(--shadow-xl)'
+            }}>
+                <button className="modal-close" onClick={onClose} style={{
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '24px',
+                    cursor: 'pointer'
+                }}>
                     <X size={24} />
                 </button>
 
