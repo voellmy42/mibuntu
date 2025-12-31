@@ -22,6 +22,8 @@ export interface UserProfile {
     levels?: string[];
     schoolName?: string;
     bio?: string;
+    phoneNumber?: string;
+    cvUrl?: string;
     // Add other profile fields as needed
 }
 

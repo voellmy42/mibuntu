@@ -16,6 +16,7 @@ export interface JobListing {
     description: string;
     createdAt: number;
     imageUrl?: string; // Optional cover image
+    status: 'open' | 'filled'; // Defaults to 'open'
 }
 
 export interface JobApplication {
@@ -23,6 +24,9 @@ export interface JobApplication {
     jobId: string;
     applicantId: string; // The teacher's ID
     applicantName: string;
+    applicantEmail?: string;
+    applicantPhone?: string;
+    applicantCvUrl?: string;
     message: string;
     appliedAt: number;
     status: 'pending' | 'accepted' | 'rejected';

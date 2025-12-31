@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../firebase';
 import { Save, User as UserIcon } from 'lucide-react';
 import { SWISS_CANTONS, SCHOOL_LEVELS, SUBJECTS_LP21 } from '../data/common';
 import '../styles/Onboarding.css'; // Reuse onboarding styles
@@ -18,6 +19,11 @@ const Profile: React.FC = () => {
     const [levels, setLevels] = useState<string[]>([]);
     const [bio, setBio] = useState('');
 
+    // Private Data
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [cvUrl, setCvUrl] = useState('');
+    const [cvFile, setCvFile] = useState<File | null>(null);
+
     useEffect(() => {
         if (userProfile) {
             setCanton(userProfile.canton || '');
@@ -25,6 +31,8 @@ const Profile: React.FC = () => {
             setSchoolName(userProfile.schoolName || '');
             setLevels(userProfile.levels || []);
             setBio(userProfile.bio || '');
+            setPhoneNumber(userProfile.phoneNumber || '');
+            setCvUrl(userProfile.cvUrl || '');
         }
     }, [userProfile]);
 
@@ -36,6 +44,24 @@ const Profile: React.FC = () => {
         setSuccessMsg('');
 
         try {
+            console.log("Starting profile save...");
+            let uploadedCvUrl = cvUrl;
+
+            // Upload CV if selected
+            if (cvFile) {
+                console.log("Uploading file:", cvFile.name, "Size:", cvFile.size);
+                if (cvFile.size > 5 * 1024 * 1024) {
+                    throw new Error("File too large (>5MB)");
+                }
+
+                const storageRef = ref(storage, `cvs/${currentUser.uid}/${cvFile.name}`);
+                const snapshot = await uploadBytes(storageRef, cvFile);
+                console.log("Upload success, fetching URL...");
+                uploadedCvUrl = await getDownloadURL(snapshot.ref);
+                setCvUrl(uploadedCvUrl);
+            }
+
+            console.log("Updating Firestore...");
             const userRef = doc(db, 'users', currentUser.uid);
 
             const updates: any = {
@@ -47,17 +73,24 @@ const Profile: React.FC = () => {
                 updates.subjects = selectedSubjects;
                 updates.levels = levels;
                 updates.bio = bio;
+                updates.phoneNumber = phoneNumber;
+                updates.cvUrl = uploadedCvUrl;
             } else if (userProfile?.role === 'school_rep') {
                 updates.schoolName = schoolName;
             }
 
             await updateDoc(userRef, updates);
+            console.log("Firestore update success");
             await refreshProfile();
             setSuccessMsg('Profil erfolgreich aktualisiert.');
             setTimeout(() => setSuccessMsg(''), 3000);
-        } catch (error) {
-            console.error("Error updating profile:", error);
-            alert("Fehler beim Speichern des Profils.");
+        } catch (error: any) {
+            console.error("Detailed error updating profile:", error);
+            if (error.code === 'storage/unauthorized') {
+                alert("Fehler: Keine Berechtigung für Upload. Bitte 'storage.rules' in der Firebase Console prüfen.");
+            } else {
+                alert(`Fehler beim Speichern: ${error.message || error}`);
+            }
         } finally {
             setSaving(false);
         }
@@ -192,6 +225,50 @@ const Profile: React.FC = () => {
                                     placeholder="Beschreiben Sie Ihre Erfahrung..."
                                 />
                             </div>
+
+                            <div style={{ marginTop: '32px', marginBottom: '24px', borderTop: '1px solid var(--color-border)', paddingTop: '24px' }}>
+                                <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>Private Kontaktdaten</h3>
+                                <p style={{ fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
+                                    Diese Daten sind nur für Schulen sichtbar, bei denen Sie sich bewerben.
+                                </p>
+
+                                <div className="form-group">
+                                    <label className="form-label">Telefonnummer</label>
+                                    <input
+                                        type="tel"
+                                        className="form-input"
+                                        value={phoneNumber}
+                                        onChange={(e) => setPhoneNumber(e.target.value)}
+                                        placeholder="+41 79 123 45 67"
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Lebenslauf (CV)</label>
+                                    {cvUrl && (
+                                        <div style={{ marginBottom: '8px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ color: 'green', fontWeight: 600 }}>✓ CV hinterlegt</span>
+                                            <a href={cvUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>
+                                                Ansehen
+                                            </a>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        accept="application/pdf"
+                                        className="form-input"
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                                setCvFile(e.target.files[0]);
+                                            }
+                                        }}
+                                        style={{ padding: '8px' }}
+                                    />
+                                    <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                                        PDF, max. 5MB. Hochladen überschreibt existierenden CV.
+                                    </p>
+                                </div>
+                            </div>
                         </>
                     )}
 
@@ -241,13 +318,14 @@ const Profile: React.FC = () => {
                     </div>
                     <button
                         onClick={async () => {
-                            if (!currentUser) return;
+                            if (!currentUser || !userProfile) return;
                             const newRole = userProfile.role === 'teacher' ? 'school_rep' : 'teacher';
                             if (confirm(`Rolle wirklich zu "${newRole === 'teacher' ? 'Lehrperson' : 'Schulleitung'}" wechseln?`)) {
                                 try {
                                     await updateDoc(doc(db, 'users', currentUser.uid), { role: newRole });
-                                    await refreshProfile();
+                                    window.location.reload(); // Reload to force fresh state
                                 } catch (e) {
+                                    console.error("Error switching role:", e);
                                     alert("Fehler beim Wechseln der Rolle.");
                                 }
                             }

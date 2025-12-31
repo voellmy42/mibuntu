@@ -38,14 +38,13 @@ export const marketplaceService = {
         try {
             const q = query(
                 collection(db, JOBS_COLLECTION),
-                where("userId", "==", userId),
-                orderBy('createdAt', 'desc')
+                where("userId", "==", userId)
             );
             const snapshot = await getDocs(q);
             return snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
-            } as JobListing));
+            } as JobListing)).sort((a, b) => b.createdAt - a.createdAt);
         } catch (error) {
             console.error("Error fetching user jobs:", error);
             return [];
@@ -124,6 +123,16 @@ export const marketplaceService = {
             await updateDoc(appRef, { status });
         } catch (error) {
             console.error("Error updating application status:", error);
+            throw error;
+        }
+    },
+
+    updateJob: async (jobId: string, updates: Partial<JobListing>): Promise<void> => {
+        try {
+            const jobRef = doc(db, JOBS_COLLECTION, jobId);
+            await updateDoc(jobRef, updates);
+        } catch (error) {
+            console.error("Error updating job:", error);
             throw error;
         }
     }

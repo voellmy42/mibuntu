@@ -16,6 +16,7 @@ const Marketplace = () => {
     const [jobs, setJobs] = useState<JobListing[]>([]);
     const [myApplications, setMyApplications] = useState<JobApplication[]>([]);
     const [myPostedJobs, setMyPostedJobs] = useState<JobListing[]>([]);
+    const [applicationsMap, setApplicationsMap] = useState<Record<string, JobApplication[]>>({});
 
     // UI State
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -45,6 +46,16 @@ const Marketplace = () => {
         } else if (userProfile?.role === 'school_rep') {
             const posted = await marketplaceService.getJobsByUser(currentUser.uid);
             setMyPostedJobs(posted);
+
+            // Fetch applications for all jobs
+            const appsMap: Record<string, JobApplication[]> = {};
+            for (const job of posted) {
+                if (job.id) {
+                    const jobApps = await marketplaceService.getApplicationsForJob(job.id);
+                    appsMap[job.id] = jobApps;
+                }
+            }
+            setApplicationsMap(appsMap);
         }
     };
 
@@ -83,6 +94,10 @@ const Marketplace = () => {
             }
             if (jobCanton !== filters.canton) matches = false;
         }
+
+        // Filter out filled jobs from search
+        if (job.status === 'filled') matches = false;
+
         return matches;
     });
 
@@ -330,18 +345,61 @@ const Marketplace = () => {
                                                 <div>
                                                     <h3 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>{job.title || job.subject}</h3>
                                                     <span style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>Erstellt am {new Date(job.createdAt).toLocaleDateString()}</span>
+                                                    {job.status === 'filled' && (
+                                                        <span style={{
+                                                            marginLeft: '8px', backgroundColor: '#dcfce7', color: '#166534',
+                                                            padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700
+                                                        }}>
+                                                            BESETZT
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <button className="btn-secondary" style={{ fontSize: '14px', padding: '6px 12px' }}>
                                                     Bearbeiten
                                                 </button>
                                             </div>
 
-                                            {/* Note: In a full app, we would load applications for each job here or on a detail view */}
+                                            {/* Applications Preview */}
                                             <div style={{
-                                                marginTop: '16px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px',
-                                                fontSize: '14px', color: 'var(--color-text-secondary)'
+                                                marginTop: '16px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px',
+                                                border: '1px solid var(--color-border)'
                                             }}>
-                                                Um Bewerber zu sehen, klicken Sie bitte auf "Details" (Not yet implemented in this simplified view).
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: applicationsMap[job.id!]?.length > 0 ? '12px' : 0 }}>
+                                                    <span style={{ fontWeight: 600, fontSize: '14px' }}>
+                                                        Bewerbungen ({applicationsMap[job.id!]?.length || 0})
+                                                    </span>
+                                                    <button
+                                                        onClick={() => setSelectedJob(job)}
+                                                        style={{
+                                                            color: '#646cff', fontWeight: 600, background: 'none', border: 'none',
+                                                            cursor: 'pointer', padding: 0, fontSize: '13px'
+                                                        }}
+                                                    >
+                                                        Details & Bewerber ansehen →
+                                                    </button>
+                                                </div>
+
+                                                {applicationsMap[job.id!]?.length > 0 && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                        {applicationsMap[job.id!].map(app => (
+                                                            <div key={app.id} style={{
+                                                                backgroundColor: 'white', padding: '10px', borderRadius: '6px',
+                                                                border: '1px solid var(--color-border)',
+                                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                fontSize: '13px'
+                                                            }}>
+                                                                <span style={{ fontWeight: 500 }}>{app.applicantName}</span>
+                                                                <span style={{
+                                                                    padding: '2px 8px', borderRadius: '99px', fontSize: '11px', fontWeight: 600,
+                                                                    backgroundColor: app.status === 'accepted' ? '#dcfce7' : app.status === 'rejected' ? '#fee2e2' : '#f3f4f6',
+                                                                    color: app.status === 'accepted' ? '#166534' : app.status === 'rejected' ? '#991b1b' : '#4b5563'
+                                                                }}>
+                                                                    {app.status === 'pending' ? 'Ausstehend' : app.status === 'accepted' ? 'Akzeptiert' : 'Abgelehnt'}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
