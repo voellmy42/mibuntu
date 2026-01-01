@@ -426,6 +426,16 @@ const Marketplace = () => {
                     job={selectedJob}
                     onClose={() => setSelectedJob(null)}
                     onApply={handleApply}
+                    onJobUpdate={(jobId, updates) => {
+                        // Update in search list (will be filtered out if filled)
+                        setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j));
+
+                        // Update in my posted jobs
+                        setMyPostedJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j));
+
+                        // If specifically filled, we might want to close modal or show success? 
+                        // For now just keeping it simple.
+                    }}
                 />
             )}
         </div>

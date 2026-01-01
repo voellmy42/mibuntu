@@ -68,8 +68,18 @@ export const marketplaceService = {
     // Apply to a job
     applyToJob: async (application: Omit<JobApplication, 'id' | 'appliedAt' | 'status'>): Promise<string> => {
         try {
-            // Check for existing application first?
-            // For now, simple add.
+            // Check for existing application
+            const q = query(
+                collection(db, APPLICATIONS_COLLECTION),
+                where("jobId", "==", application.jobId),
+                where("applicantId", "==", application.applicantId)
+            );
+            const snapshot = await getDocs(q);
+
+            if (!snapshot.empty) {
+                throw new Error("ALREADY_APPLIED");
+            }
+
             const docRef = await addDoc(collection(db, APPLICATIONS_COLLECTION), {
                 ...application,
                 appliedAt: Date.now(),

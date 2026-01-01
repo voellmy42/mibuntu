@@ -8,9 +8,10 @@ interface JobDetailModalProps {
     job: JobListing;
     onClose: () => void;
     onApply: (job: JobListing) => void;
+    onJobUpdate?: (jobId: string, updates: Partial<JobListing>) => void;
 }
 
-const JobDetailModal = ({ job, onClose }: JobDetailModalProps) => {
+const JobDetailModal = ({ job, onClose, onJobUpdate }: JobDetailModalProps) => {
     const { currentUser, userProfile } = useAuth();
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,6 +45,9 @@ const JobDetailModal = ({ job, onClose }: JobDetailModalProps) => {
             // If accepted, close the job
             if (status === 'accepted' && job.id) {
                 await marketplaceService.updateJob(job.id, { status: 'filled' } as const);
+                if (onJobUpdate) {
+                    onJobUpdate(job.id, { status: 'filled' });
+                }
             }
 
             // Optimistic update
@@ -88,6 +92,20 @@ const JobDetailModal = ({ job, onClose }: JobDetailModalProps) => {
         }
     };
 
+    // Check if user has already applied
+    useEffect(() => {
+        if (currentUser && !isJobOwner && userProfile?.role === 'teacher') {
+            const checkApplication = async () => {
+                const userApps = await marketplaceService.getApplicationsByUser(currentUser.uid);
+                const applied = userApps.some(app => app.jobId === job.id);
+                if (applied) {
+                    setHasApplied(true);
+                }
+            };
+            checkApplication();
+        }
+    }, [currentUser, job.id, isJobOwner, userProfile]);
+
     if (hasApplied) {
         return (
             <div className="modal-overlay" onClick={onClose} style={{
@@ -114,9 +132,12 @@ const JobDetailModal = ({ job, onClose }: JobDetailModalProps) => {
                     <div style={{ color: 'green', marginBottom: '20px' }}>
                         <CheckCircle size={64} />
                     </div>
-                    <h2>Bewerbung versendet!</h2>
+                    {/* We can differentiate message if just checking existing vs newly applied, 
+                        but for now reusing the success state is a simple way to block duplicate apply. 
+                        Refining to show 'Bereits beworben' instead of 'Versendet!' if it was pre-existing would be better. */}
+                    <h2>Bereits beworben</h2>
                     <p style={{ color: 'var(--color-text-secondary)', marginBottom: '32px' }}>
-                        Die Schule wurde benachrichtigt und wird sich bei Ihnen melden.
+                        Sie haben sich bereits auf diese Stelle beworben.
                     </p>
                     <button className="btn-primary" onClick={onClose}>
                         Zurück zur Übersicht
