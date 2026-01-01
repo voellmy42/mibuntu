@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
 import { Save, User as UserIcon } from 'lucide-react';
@@ -341,6 +341,46 @@ const Profile: React.FC = () => {
                         }}
                     >
                         Zu {userProfile.role === 'teacher' ? 'Schulleitung' : 'Lehrperson'} wechseln
+                    </button>
+                </div>
+
+                {/* Test Notification Button */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f3f4f6', padding: '16px', borderRadius: '8px', marginTop: '16px' }}>
+                    <div>
+                        <p style={{ fontWeight: 600, margin: '0 0 4px 0' }}>Test Notification</p>
+                        <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
+                            Sendet eine Test-Benachrichtigung an Sie selbst.
+                        </p>
+                    </div>
+                    <button
+                        onClick={async () => {
+                            try {
+                                await addDoc(collection(db, 'notifications'), {
+                                    userId: currentUser?.uid,
+                                    type: 'info',
+                                    title: 'Test Benachrichtigung',
+                                    message: 'Dies ist ein Test.',
+                                    read: false,
+                                    createdAt: serverTimestamp(),
+                                    link: '/profile'
+                                });
+                                alert("Test-Benachrichtigung gesendet!");
+                            } catch (e) {
+                                console.error("Error sending test notification:", e);
+                                alert("Fehler beim Senden: " + e);
+                            }
+                        }}
+                        style={{
+                            backgroundColor: 'white',
+                            border: '1px solid var(--color-border)',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: '14px'
+                        }}
+                    >
+                        Senden
                     </button>
                 </div>
             </div>

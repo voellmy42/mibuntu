@@ -46,11 +46,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         // Query for user's notifications, ordered by date desc
+        // Removed orderBy/limit here to avoid needing a Composite Index (userId + createdAt)
+        // Since user notification volume is low, fetching all matching and sorting client-side is fine.
         const q = query(
             collection(db, 'notifications'),
-            where('userId', '==', currentUser.uid),
-            orderBy('createdAt', 'desc'),
-            limit(50)
+            where('userId', '==', currentUser.uid)
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -61,6 +61,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 const data = doc.data() as Omit<Notification, 'id'>;
                 notes.push({ ...data, id: doc.id });
                 if (!data.read) unread++;
+            });
+
+            // Client-side sort (descending by createdAt)
+            notes.sort((a, b) => {
+                const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+                const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+                return tB - tA;
             });
 
             setNotifications(notes);
