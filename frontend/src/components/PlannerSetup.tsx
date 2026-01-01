@@ -4,6 +4,7 @@ import { CheckCircle2, Play, Users, BookOpen, MessageSquarePlus } from 'lucide-r
 
 interface PlannerSetupProps {
     onStart: (config: { selectedModules: string[], cycle: string, wishes: string }) => void;
+    isMobile: boolean;
 }
 
 const CYCLES = [
@@ -12,7 +13,7 @@ const CYCLES = [
     { id: 'zyklus3', label: 'Zyklus 3 (7. - 9. Klasse)', description: 'Sekundarstufe I, 12-15 Jahre' },
 ];
 
-const PlannerSetup: React.FC<PlannerSetupProps> = ({ onStart }) => {
+const PlannerSetup: React.FC<PlannerSetupProps> = ({ onStart, isMobile }) => {
     const [selectedModules, setSelectedModules] = useState<string[]>([]);
     const [selectedCycle, setSelectedCycle] = useState<string>('');
     const [wishes, setWishes] = useState('');
@@ -48,7 +49,7 @@ const PlannerSetup: React.FC<PlannerSetupProps> = ({ onStart }) => {
                 backgroundColor: 'white',
                 borderRadius: '16px',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                padding: '40px',
+                padding: isMobile ? '24px' : '40px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '32px'
@@ -63,7 +64,7 @@ const PlannerSetup: React.FC<PlannerSetupProps> = ({ onStart }) => {
                 </div>
 
                 {/* Grid Layout for Configuration */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '32px' }}>
 
                     {/* Left Column: Subject & Cycle */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

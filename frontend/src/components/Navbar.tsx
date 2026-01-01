@@ -1,6 +1,7 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogOut, User as UserIcon } from 'lucide-react';
+import NotificationCenter from './NotificationCenter';
 import '../styles/Navbar.css';
 
 function Navbar() {
@@ -50,6 +51,7 @@ function Navbar() {
                 </div>
 
                 <div className="navbar-actions">
+                    {currentUser && <NotificationCenter />}
                     {currentUser ? (
                         <div className="navbar-user-section">
                             <Link to="/profile" className="navbar-user-pill" style={{ textDecoration: 'none' }}>

@@ -6,6 +6,7 @@ import JobDetailModal from '../components/marketplace/JobDetailModal';
 import { SUBJECTS, CYCLES, CANTONS } from '../data/constants';
 import { SWISS_LOCATIONS } from '../data/swiss_locations';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { Calendar, MapPin, Inbox, FileText } from 'lucide-react';
 
 const Marketplace = () => {
@@ -67,11 +68,23 @@ const Marketplace = () => {
         }
     }, [activeTab, currentUser]);
 
+    const { sendNotification } = useNotifications();
+
     // Apply Handler (Passed to Modal)
-    const handleApply = (_: JobListing) => {
-        // This is now handled inside the modal logic mainly, 
-        // but we can refresh data or close modal here if needed.
-        // The modal now does the actual service call.
+    const handleApply = async (job: JobListing) => {
+        // Triggered after successful application in Modal
+        console.log('handleApply triggered for job:', job.id, 'userId:', job.userId);
+        if (job.userId) {
+            await sendNotification(job.userId, {
+                type: 'new_application',
+                title: 'Neue Bewerbung',
+                message: `${userProfile?.displayName || 'Ein Nutzer'} hat sich auf "${job.title || job.subject}" beworben.`,
+                link: '/marketplace', // Or specific link if we had routing to specific job mgmt
+                metadata: { jobId: job.id }
+            });
+        } else {
+            console.warn('Job missing userId, cannot send notification');
+        }
     };
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {

@@ -324,7 +324,7 @@ const Planner = () => {
     };
 
     if (!isSetupComplete) {
-        return <PlannerSetup onStart={handleSetupStart} />;
+        return <PlannerSetup onStart={handleSetupStart} isMobile={isMobile} />;
     }
 
     // Has AI Content for Output Tab check

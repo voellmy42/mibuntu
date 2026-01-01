@@ -84,6 +84,7 @@ const JobDetailModal = ({ job, onClose, onJobUpdate }: JobDetailModalProps) => {
                 jobDate: job.startDate
             });
             setHasApplied(true);
+            onApply(job);
         } catch (err) {
             console.error(err);
             setError('Fehler beim Senden der Bewerbung.');
