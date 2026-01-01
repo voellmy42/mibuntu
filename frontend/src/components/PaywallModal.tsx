@@ -19,7 +19,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ onClose, isOpen }) => {
 
     if (!isOpen) return null;
 
-    const handlePayment = async (method: 'credit-card' | 'twint') => {
+    const handlePayment = async () => {
         if (!currentUser) return;
 
         setLoading(true);
@@ -30,7 +30,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ onClose, isOpen }) => {
             await updateDoc(userRef, {
                 subscriptionStatus: 'premium',
                 subscriptionDate: Timestamp.now(),
-                paymentMethod: method
+                paymentMethod: 'stripe'
             });
 
             await refreshProfile();
@@ -196,7 +196,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ onClose, isOpen }) => {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
                         <button
-                            onClick={() => handlePayment('credit-card')}
+                            onClick={handlePayment}
                             disabled={loading}
                             style={{
                                 background: 'var(--color-brand)',
@@ -214,7 +214,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ onClose, isOpen }) => {
                                 width: '100%'
                             }}
                         >
-                            {loading ? "Processing..." : "Upgrade Now"}
+                            {loading ? "Processing..." : "Start Subscription"}
                         </button>
                         <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--color-text-tertiary)', marginTop: '8px' }}>
                             Secured by MockPayment
@@ -231,7 +231,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ onClose, isOpen }) => {
                     }
                 }
             `}</style>
-        </div>
+        </div >
     );
 };
 
