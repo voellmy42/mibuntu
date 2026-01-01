@@ -3,13 +3,18 @@ import { generateLessonPlan, generateDossier } from '../services/gemini';
 import { extractTextFromPdf } from '../utils/pdfUtils';
 import SourceSidebar, { type UploadedFile } from '../components/SourceSidebar';
 import ChatArea, { type Message } from '../components/ChatArea';
-import OutputView from '../components/OutputView'; // New Component
+import OutputView from '../components/OutputView';
 import PlannerSetup from '../components/PlannerSetup';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '../firebase';
-import { BookOpen, MessageSquare, Download } from 'lucide-react'; // Icons
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'; // Auth imports
+import { auth, db } from '../firebase'; // Import db
+import { doc, updateDoc } from 'firebase/firestore'; // Firestore imports
+import { BookOpen, MessageSquare, Download } from 'lucide-react';
+import { useAuth } from '../context/AuthContext'; // Import useAuth
+import PaywallModal from '../components/PaywallModal'; // Import PaywallModal
 
-// Hook for mobile detection
+// ... (rest of imports)
+
+// (Keep existing useIsMobile hook)
 const useIsMobile = () => {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     useEffect(() => {
@@ -21,13 +26,12 @@ const useIsMobile = () => {
 };
 
 const Planner = () => {
-    // API Key State
-    const [apiKey, setApiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || '');
-    const [showApiKeyInput, setShowApiKeyInput] = useState(!import.meta.env.VITE_GEMINI_API_KEY);
-
-    // Auth State
+    // ... (Keep existing state)
+    // removed apiKey state
+    // removed showApiKeyInput state
     const [user, setUser] = useState<any>(null);
 
+    // ... (Keep Auth Effect)
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
@@ -35,39 +39,30 @@ const Planner = () => {
         return () => unsubscribe();
     }, []);
 
-    // Mobile State
+    // ... (Keep Mobile State & Tab State)
     const isMobile = useIsMobile();
     const [activeTab, setActiveTab] = useState<'sources' | 'chat' | 'output'>('chat');
 
-    // Active Source State (Used for Chat)
+    // ... (Keep Source State)
     const [activeCycle, setActiveCycle] = useState<string>('');
     const [activeWishes, setActiveWishes] = useState<string>('');
     const [isSetupComplete, setIsSetupComplete] = useState(false);
-
-    // Active Source State (Used for Chat)
     const [activeSelectedModules, setActiveSelectedModules] = useState<string[]>(['ZH_DE_Fachbereich_NMG']);
     const [activeUploadedFiles, setActiveUploadedFiles] = useState<UploadedFile[]>([]);
-
-    // Draft Source State (Used for Sidebar UI)
     const [draftSelectedModules, setDraftSelectedModules] = useState<string[]>(['ZH_DE_Fachbereich_NMG']);
     const [draftUploadedFiles, setDraftUploadedFiles] = useState<UploadedFile[]>([]);
 
     const [input, setInput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isContextReloading, setIsContextReloading] = useState(false);
-
-    // New State for Dossier Generation
     const [isGeneratingDossier, setIsGeneratingDossier] = useState(false);
-
-
     const [messages, setMessages] = useState<Message[]>([]);
 
-    // Check for unapplied changes
     const hasUnappliedChanges =
         JSON.stringify(activeSelectedModules.sort()) !== JSON.stringify(draftSelectedModules.sort()) ||
         activeUploadedFiles !== draftUploadedFiles;
 
-    // Handlers for Sidebar
+    // ... (Keep Handlers for Sidebar: handleToggleModule, handleFileUpload, handleRemoveFile, handleApplyChanges)
     const handleToggleModule = (id: string) => {
         setDraftSelectedModules(prev =>
             prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
@@ -76,10 +71,8 @@ const Planner = () => {
 
     const handleFileUpload = async (files: FileList | null) => {
         if (!files || files.length === 0) return;
-
         setIsProcessing(true);
         const newFiles: UploadedFile[] = [];
-
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             try {
@@ -98,7 +91,6 @@ const Planner = () => {
                 console.error(`Error reading file ${file.name}:`, error);
             }
         }
-
         setDraftUploadedFiles(prev => [...prev, ...newFiles]);
         setIsProcessing(false);
     };
@@ -109,63 +101,76 @@ const Planner = () => {
 
     const handleApplyChanges = async () => {
         setIsContextReloading(true);
-
-        // Simulate context reloading / processing time
         await new Promise(resolve => setTimeout(resolve, 800));
-
         setActiveSelectedModules(draftSelectedModules);
-        // Apply draft files to active, fully replacing the list
         setActiveUploadedFiles(draftUploadedFiles);
-
-        // Optional: Add a system message indicating context update
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
             sender: 'ai',
             text: `Quellen aktualisiert (${draftSelectedModules.length} Module, ${draftUploadedFiles.filter(f => f.isActive !== false).length} aktive Dateien). Ich bin bereit.`
         }]);
-
         setIsContextReloading(false);
-        // On mobile, switch to chat after applying
         if (isMobile) setActiveTab('chat');
     };
 
-
-    // Handlers for Chat
+    // ... (Keep fetchLehrplanContext)
     const fetchLehrplanContext = async (): Promise<string> => {
         let combinedText = '';
         const baseUrl = '/lehrplan/';
-
         for (const moduleId of activeSelectedModules) {
             try {
                 const filename = `${moduleId}.pdf`;
                 const response = await fetch(`${baseUrl}${filename}`);
-                if (!response.ok) {
-                    console.warn(`Could not fetch Lehrplan module: ${filename}`);
-                    continue;
-                }
+                if (!response.ok) { continue; }
                 const arrayBuffer = await response.arrayBuffer();
                 const text = await extractTextFromPdf(arrayBuffer);
                 combinedText += `\n\n--- MODULE: ${moduleId} ---\n${text}`;
-            } catch (error) {
-                console.error(`Error processing Lehrplan module ${moduleId}:`, error);
-            }
+            } catch (error) { console.error(error); }
         }
         return combinedText;
+    };
+
+
+    // --- Context & State for Paywall ---
+    const { userProfile, refreshProfile } = useAuth();
+    const [showPaywall, setShowPaywall] = useState(false);
+
+    const incrementUsage = async () => {
+        if (!user) return;
+        try {
+            const userRef = doc(db, 'users', user.uid);
+            await updateDoc(userRef, {
+                aiInteractionCount: (userProfile?.aiInteractionCount || 0) + 1
+            });
+            await refreshProfile();
+        } catch (e) {
+            console.error("Failed to track usage", e);
+        }
     };
 
     const processMessage = async (textInput: string) => {
         if (!textInput.trim()) return;
 
-        const effectiveApiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY;
+        // --- Usage Check ---
+        const isPremium = userProfile?.subscriptionStatus === 'premium';
+        const usageCount = userProfile?.aiInteractionCount || 0;
+        const FREE_LIMIT = 5;
+
+        // Only check usage if user is logged in (implicit requirement, but safe to check)
+        // If not logged in, they might not have a profile, but our Auth logic usually mandates login.
+        if (user && !isPremium && usageCount >= FREE_LIMIT) {
+            setShowPaywall(true);
+            return;
+        }
+
+        const effectiveApiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
         if (!effectiveApiKey) {
-            console.log("No API Key found");
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 sender: 'ai',
-                text: 'Bitte geben Sie zuerst einen gültigen Gemini API Key ein.'
+                text: 'System Error: No Gemini API Key configured in environment variables.'
             }]);
-            setShowApiKeyInput(true);
             return;
         }
 
@@ -174,34 +179,24 @@ const Planner = () => {
         setIsProcessing(true);
 
         try {
-            console.log("Gathering context...");
-            // 1. Gather Context (using ACTIVE sources)
-            // Filter only active files
             const meaningfulActiveFiles = activeUploadedFiles.filter(f => f.isActive !== false);
             const lehrplanContext = await fetchLehrplanContext();
 
-            console.log("Context gathered, calling Gemini...");
-
-            // 2. Call Gemini
             const generatedText = await generateLessonPlan(
                 userMsg.text,
                 meaningfulActiveFiles,
                 lehrplanContext,
                 effectiveApiKey,
-                {
-                    cycle: activeCycle,
-                    wishes: activeWishes
-                }
+                { cycle: activeCycle, wishes: activeWishes }
             );
-            console.log("Gemini response received");
 
-            // Parse output for <thinking> tags
+            // Increment usage ONLY on successful generation
+            await incrementUsage();
+
             let thought = "";
             let cleanText = generatedText;
-
             const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/;
             const match = generatedText.match(thinkingRegex);
-
             if (match) {
                 thought = match[1].trim();
                 cleanText = generatedText.replace(thinkingRegex, "").trim();
@@ -220,7 +215,7 @@ const Planner = () => {
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 sender: 'ai',
-                text: 'Ein Fehler ist aufgetreten. Bitte überprüfen Sie die Konsole für Details.'
+                text: 'Ein Fehler ist aufgetreten.'
             }]);
         } finally {
             setIsProcessing(false);
@@ -232,31 +227,18 @@ const Planner = () => {
         setInput('');
     };
 
+    // ... (Keep handleGenerateDossier, handleToggleFile, handleSetupStart, etc.)
     const handleGenerateDossier = async () => {
         if (!user) {
-            // Auth check
             alert("Bitte loggen Sie sich ein.");
-            try {
-                await signInWithPopup(auth, new GoogleAuthProvider());
-            } catch (error) {
-                console.error("Login failed", error);
-                return;
-            }
+            try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error) { return; }
         }
-
-        // Find last AI message
         const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai');
-        if (!lastAiMessage) {
-            alert("Noch kein Lektionsplan vorhanden.");
-            return;
-        }
-
+        if (!lastAiMessage) { alert("Noch kein Lektionsplan vorhanden."); return; }
         setIsGeneratingDossier(true);
         try {
-            const effectiveApiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY;
+            const effectiveApiKey = import.meta.env.VITE_GEMINI_API_KEY;
             const dossierContent = await generateDossier(lastAiMessage.text, effectiveApiKey);
-
-            // Download
             const blob = new Blob([dossierContent], { type: 'text/markdown' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -266,19 +248,13 @@ const Planner = () => {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-
-        } catch (error) {
-            console.error("Dossier generation failed", error);
-            alert("Fehler beim Erstellen des Dossiers.");
-        } finally {
-            setIsGeneratingDossier(false);
-        }
+        } catch (error) { console.error("Dossier generation failed", error); alert("Fehler beim Erstellen des Dossiers."); }
+        finally { setIsGeneratingDossier(false); }
     };
 
     const handleToggleFile = (index: number) => {
         setDraftUploadedFiles(prev => {
             const newFiles = [...prev];
-            // Toggle logic: if undefined, treat as true -> becomes false.
             const currentState = newFiles[index].isActive !== false;
             newFiles[index] = { ...newFiles[index], isActive: !currentState };
             return newFiles;
@@ -291,26 +267,20 @@ const Planner = () => {
         setActiveCycle(config.cycle);
         setActiveWishes(config.wishes);
         setIsSetupComplete(true);
-
-        // If user provided wishes, treat it as the first prompt
         if (config.wishes.trim()) {
             // Logic handled by useEffect
         } else {
             setMessages([{
-                id: '1',
-                sender: 'ai',
-                text: 'Hallo! Ich bin Ihr Mibuntu KI-Assistent. Wie kann ich helfen?'
+                id: '1', sender: 'ai', text: 'Hallo! Ich bin Ihr Mibuntu KI-Assistent. Wie kann ich helfen?'
             }]);
         }
     };
 
-    // Effect to trigger initial wish processing once setup is complete and state is ready
     useEffect(() => {
         if (isSetupComplete && activeWishes && messages.length === 0) {
             processMessage(activeWishes);
         }
     }, [isSetupComplete, activeWishes]);
-
 
     const handleReset = () => {
         setIsSetupComplete(false);
@@ -319,7 +289,7 @@ const Planner = () => {
         setMessages([]);
         setActiveSelectedModules([]);
         setDraftSelectedModules([]);
-        setDraftUploadedFiles([]); // Also reset active? User choice.
+        setDraftUploadedFiles([]);
         setActiveUploadedFiles([]);
     };
 
@@ -327,11 +297,14 @@ const Planner = () => {
         return <PlannerSetup onStart={handleSetupStart} isMobile={isMobile} />;
     }
 
-    // Has AI Content for Output Tab check
     const hasAiContent = messages.some(m => m.sender === 'ai');
 
     return (
-        <div style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', backgroundColor: '#FAFAFA' }}>
+        <div style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', backgroundColor: '#FAFAFA', position: 'relative' }}>
+
+            {/* Paywall Modal */}
+            <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
+
             {/* Main Content Area */}
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
 
@@ -351,10 +324,6 @@ const Planner = () => {
                             onUpload={handleFileUpload}
                             onRemoveFile={handleRemoveFile}
                             onToggleFile={handleToggleFile}
-                            apiKey={apiKey}
-                            onApiKeyChange={setApiKey}
-                            showApiKeyInput={showApiKeyInput}
-                            setShowApiKeyInput={setShowApiKeyInput}
                             isProcessing={isProcessing}
                             onApplyChanges={handleApplyChanges}
                             hasUnappliedChanges={hasUnappliedChanges}
@@ -377,20 +346,13 @@ const Planner = () => {
                             user={user}
                             onGenerateDossier={handleGenerateDossier}
                             isGeneratingDossier={isGeneratingDossier}
+                            usageCount={userProfile?.aiInteractionCount || 0}
+                            isPremium={userProfile?.subscriptionStatus === 'premium'}
                         />
                     </div>
                 )}
 
-                {/* Module 3: Output (Mobile Only view for checking, or Modal on desktop?) 
-                     For now, let's keep it as a tab on mobile. On desktop, currently it's a button in Chat.
-                     We can allow the OutputView to be shown on Desktop if we want a 3-column layout?
-                     The user asked for "Three Tab layout where a mobile user can swipe".
-                     Let's disable OutputView on Desktop for now unless we want to replace the button.
-                     Actually, the prompt implies "Module 3: Output" is a distinct module. 
-                     Let's render it if activeTab is output. On Desktop, maybe we don't show it or we show it as a modal?
-                     For simplicity: Hide on Desktop (since button is in Chat) OR toggle it.
-                     Let's stick to Mobile strict tabs.
-                 */}
+                {/* Module 3: Output */}
                 {isMobile && activeTab === 'output' && (
                     <div style={{ width: '100%', height: '100%', zIndex: 10, backgroundColor: 'white' }}>
                         <OutputView
@@ -413,7 +375,7 @@ const Planner = () => {
                     alignItems: 'center',
                     justifyContent: 'space-around',
                     flexShrink: 0,
-                    zIndex: 50 // Above content
+                    zIndex: 50
                 }}>
                     <button
                         onClick={() => setActiveTab('sources')}

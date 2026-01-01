@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { FileText, CheckCircle2, Paperclip, Loader2, Key, RefreshCw, Trash2 } from 'lucide-react';
+import { FileText, CheckCircle2, Paperclip, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { MODULES } from '../data/lehrplan';
 
 export interface UploadedFile {
@@ -15,10 +15,6 @@ interface SourceSidebarProps {
     onUpload: (files: FileList | null) => void;
     onRemoveFile: (index: number) => void;
     onToggleFile?: (index: number) => void;
-    apiKey: string;
-    onApiKeyChange: (key: string) => void;
-    showApiKeyInput: boolean;
-    setShowApiKeyInput: (show: boolean) => void;
     isProcessing: boolean;
     onApplyChanges: () => void;
     hasUnappliedChanges: boolean;
@@ -33,10 +29,6 @@ const SourceSidebar: React.FC<SourceSidebarProps> = ({
     onUpload,
     onRemoveFile,
     onToggleFile,
-    apiKey,
-    onApiKeyChange,
-    showApiKeyInput,
-    setShowApiKeyInput,
     isProcessing,
     onApplyChanges,
     hasUnappliedChanges,
@@ -100,35 +92,6 @@ const SourceSidebar: React.FC<SourceSidebarProps> = ({
                         ))}
                     </div>
                 )}
-
-
-                {/* API Key Toggle/Input */}
-                <div style={{ marginTop: '16px' }}>
-                    <button
-                        onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-                        style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                        <Key size={14} /> {showApiKeyInput ? 'API Key verbergen' : 'API Key verwalten'}
-                    </button>
-
-                    {showApiKeyInput && (
-                        <input
-                            type="password"
-                            placeholder="Gemini API Key eingeben"
-                            value={apiKey}
-                            onChange={(e) => onApiKeyChange(e.target.value)}
-                            style={{
-                                width: '100%',
-                                marginTop: '8px',
-                                padding: '8px 12px',
-                                fontSize: '13px',
-                                borderRadius: '6px',
-                                border: '1px solid #ddd',
-                                outline: 'none'
-                            }}
-                        />
-                    )}
-                </div>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>

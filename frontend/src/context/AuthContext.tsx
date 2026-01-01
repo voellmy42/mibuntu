@@ -24,6 +24,9 @@ export interface UserProfile {
     bio?: string;
     phoneNumber?: string;
     cvUrl?: string;
+    subscriptionStatus?: 'free' | 'premium';
+    subscriptionDate?: any;
+    aiInteractionCount?: number; // Track number of AI interactions
     // Add other profile fields as needed
 }
 

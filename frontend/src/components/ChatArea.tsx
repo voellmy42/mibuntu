@@ -20,6 +20,8 @@ interface ChatAreaProps {
     isContextReloading: boolean;
     user: any;
     onGenerateDossier?: () => void;
+    usageCount?: number;
+    isPremium?: boolean;
     isGeneratingDossier?: boolean;
 }
 
@@ -32,8 +34,11 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     isContextReloading,
     user,
     onGenerateDossier,
-    isGeneratingDossier
+    isGeneratingDossier,
+    usageCount = 0,
+    isPremium = false
 }) => {
+    // ... (existing refs & functions)
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -45,11 +50,15 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         console.log("ChatArea User State:", user);
     }, [messages, isProcessing, isContextReloading, user]);
 
-    // Note: handleDownload removed or repurposed. Now we use onGenerateDossier.
+
+    const FREE_LIMIT = 5;
+    const remaining = Math.max(0, FREE_LIMIT - usageCount);
+    const progress = Math.min(100, (usageCount / FREE_LIMIT) * 100);
+    const isLimitReached = usageCount >= FREE_LIMIT;
 
     return (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
-            {/* Header for Download Action */}
+            {/* ... (Keep Header for Download Action) */}
             <div style={{
                 position: 'absolute',
                 top: 0,
@@ -86,9 +95,9 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                 )}
             </div>
 
-
             {/* Main Chat Area */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '32px 32px 100px 32px' }}> {/* Padding bottom for input area */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '32px 32px 100px 32px' }}>
+                {/* ... (Keep existing chat message mapping) */}
                 <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     {messages.map(msg => (
                         <div key={msg.id} style={{ display: 'flex', gap: '16px', alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
@@ -123,8 +132,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                                         </div>
                                     </details>
                                 )}
-
-
 
                                 <div style={{
                                     backgroundColor: msg.sender === 'user' ? '#F3F4F6' : 'white',
@@ -219,8 +226,33 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                 padding: '24px 32px',
                 background: 'linear-gradient(to top, white 80%, rgba(255,255,255,0))',
                 display: 'flex',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px'
             }}>
+                {/* Usage Counter - Only show for non-premium users */}
+                {!isPremium && user && (
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '4px 12px',
+                        borderRadius: '100px',
+                        backgroundColor: isLimitReached ? '#FEF2F2' : '#F3F4F6',
+                        border: `1px solid ${isLimitReached ? '#FCA5A5' : '#E5E7EB'}`,
+                        marginBottom: '4px'
+                    }}>
+                        <div style={{ width: '60px', height: '4px', backgroundColor: '#E5E7EB', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{ width: `${progress}%`, height: '100%', backgroundColor: isLimitReached ? 'var(--color-brand)' : '#3B82F6', transition: 'width 0.3s ease' }} />
+                        </div>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: isLimitReached ? 'var(--color-brand)' : '#6B7280' }}>
+                            {remaining} {remaining === 1 ? 'Free Message' : 'Free Messages'} Left
+                        </span>
+                    </div>
+                )}
+
+
                 <div style={{ width: '100%', maxWidth: '800px', position: 'relative' }}>
                     <input
                         type="text"

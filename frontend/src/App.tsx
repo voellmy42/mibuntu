@@ -9,6 +9,8 @@ import Marketplace from './pages/Marketplace';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Profile from './pages/Profile';
+import Subscription from './pages/Subscription';
+import PremiumRoute from './components/PremiumRoute';
 
 function App() {
   return (
@@ -28,9 +30,15 @@ function App() {
 
               {/* Protected Routes that require a full profile (role) */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/planner" element={<Planner />} />
                 <Route path="/marketplace" element={<Marketplace />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/subscription" element={<Subscription />} />
+                <Route path="/planner" element={<Planner />} />
+
+                {/* Premium Routes */}
+                <Route element={<PremiumRoute />}>
+                  {/* Future premium-only routes */}
+                </Route>
               </Route>
             </Routes>
           </div>
