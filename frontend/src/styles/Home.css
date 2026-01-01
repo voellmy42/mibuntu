@@ -1,0 +1,97 @@
+.home-hero-section {
+    background-color: #FFFFFF;
+    padding: 120px 0 100px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.home-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #F0F9FF;
+    color: var(--color-brand);
+    padding: 8px 16px;
+    border-radius: 99px;
+    margin-bottom: 32px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid rgba(0, 102, 255, 0.1);
+    max-width: 100%;
+}
+
+.home-hero-title {
+    font-size: 56px;
+    line-height: 1.1;
+    margin-bottom: 24px;
+    letter-spacing: -1.5px;
+    font-weight: 800;
+}
+
+.home-hero-subtitle {
+    font-size: 20px;
+    color: var(--color-text-secondary);
+    max-width: 640px;
+    margin: 0 auto 48px;
+    line-height: 1.6;
+}
+
+.home-hero-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.home-section-problem {
+    background-color: #FFF5F5;
+    padding: 80px 0;
+    border-top: 1px solid #FFE0E0;
+    border-bottom: 1px solid #FFE0E0;
+}
+
+.home-section-solution {
+    padding: 100px 0;
+}
+
+/* Responsive Overrides */
+@media (max-width: 768px) {
+    .home-hero-section {
+        padding: 60px 0 40px;
+    }
+
+    .home-hero-title {
+        font-size: 32px;
+        /* clamp fallback */
+        font-size: clamp(32px, 8vw, 48px);
+        letter-spacing: -1px;
+    }
+
+    .home-hero-subtitle {
+        font-size: 16px;
+        margin-bottom: 32px;
+        padding: 0 16px;
+        /* Ensure lateral padding */
+    }
+
+    .home-hero-badge {
+        font-size: 12px;
+        padding: 6px 12px;
+        margin-bottom: 24px;
+    }
+
+    .home-hero-actions button {
+        width: 100%;
+        /* Stack buttons on mobile */
+        max-width: 300px;
+    }
+
+    .home-section-problem {
+        padding: 40px 0;
+    }
+
+    .home-section-solution {
+        padding: 60px 0;
+    }
+}

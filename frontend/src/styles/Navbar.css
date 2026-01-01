@@ -154,6 +154,19 @@
 }
 
 @media (max-width: 768px) {
+    .navbar {
+        height: 64px;
+        padding: 0 var(--spacing-md);
+    }
+
+    .logo-text {
+        font-size: 18px;
+    }
+
+    .navbar-links {
+        display: none;
+    }
+
     .user-info {
         display: none;
     }
@@ -161,9 +174,15 @@
     .navbar-user-pill {
         padding: 4px;
         border: none;
+        background: transparent;
     }
 
     .navbar-user-pill:hover {
         box-shadow: none;
+    }
+
+    .navbar-cta-button {
+        padding: 8px 16px;
+        font-size: 13px;
     }
 }

@@ -5,8 +5,6 @@ import {
     query,
     where,
     onSnapshot,
-    orderBy,
-    limit,
     addDoc,
     serverTimestamp,
     doc,
@@ -102,14 +100,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const sendNotification = async (userId: string, data: Omit<Notification, 'id' | 'userId' | 'read' | 'createdAt'>) => {
         try {
-            console.log('Sending notification to:', userId, data);
+
             await addDoc(collection(db, 'notifications'), {
                 userId,
                 ...data,
                 read: false,
                 createdAt: serverTimestamp()
             });
-            console.log('Notification sent successfully');
+
         } catch (error) {
             console.error("Error sending notification:", error);
         }

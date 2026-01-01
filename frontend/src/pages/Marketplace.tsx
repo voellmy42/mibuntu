@@ -73,7 +73,7 @@ const Marketplace = () => {
     // Apply Handler (Passed to Modal)
     const handleApply = async (job: JobListing) => {
         // Triggered after successful application in Modal
-        console.log('handleApply triggered for job:', job.id, 'userId:', job.userId);
+
         if (job.userId) {
             await sendNotification(job.userId, {
                 type: 'new_application',

@@ -47,7 +47,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
 
     useEffect(() => {
         scrollToBottom();
-        console.log("ChatArea User State:", user);
+
     }, [messages, isProcessing, isContextReloading, user]);
 
 

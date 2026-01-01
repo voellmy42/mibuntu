@@ -86,7 +86,7 @@ export const generateLessonPlan = async (
     `;
 
     try {
-        console.log("Calling Gemini with model:", "gemini-2.0-flash-exp");
+
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         return response.text();
@@ -140,7 +140,7 @@ export const generateDossier = async (
     `;
 
     try {
-        console.log("Generating Dossier...");
+
         const result = await model.generateContent(prompt);
         const response = await result.response;
         return response.text();

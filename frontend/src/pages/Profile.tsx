@@ -44,24 +44,24 @@ const Profile: React.FC = () => {
         setSuccessMsg('');
 
         try {
-            console.log("Starting profile save...");
+
             let uploadedCvUrl = cvUrl;
 
             // Upload CV if selected
             if (cvFile) {
-                console.log("Uploading file:", cvFile.name, "Size:", cvFile.size);
+
                 if (cvFile.size > 5 * 1024 * 1024) {
                     throw new Error("File too large (>5MB)");
                 }
 
                 const storageRef = ref(storage, `cvs/${currentUser.uid}/${cvFile.name}`);
                 const snapshot = await uploadBytes(storageRef, cvFile);
-                console.log("Upload success, fetching URL...");
+
                 uploadedCvUrl = await getDownloadURL(snapshot.ref);
                 setCvUrl(uploadedCvUrl);
             }
 
-            console.log("Updating Firestore...");
+
             const userRef = doc(db, 'users', currentUser.uid);
 
             const updates: any = {
@@ -80,7 +80,7 @@ const Profile: React.FC = () => {
             }
 
             await updateDoc(userRef, updates);
-            console.log("Firestore update success");
+
             await refreshProfile();
             setSuccessMsg('Profil erfolgreich aktualisiert.');
             setTimeout(() => setSuccessMsg(''), 3000);

@@ -11,7 +11,7 @@ interface JobDetailModalProps {
     onJobUpdate?: (jobId: string, updates: Partial<JobListing>) => void;
 }
 
-const JobDetailModal = ({ job, onClose, onJobUpdate }: JobDetailModalProps) => {
+const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalProps) => {
     const { currentUser, userProfile } = useAuth();
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
