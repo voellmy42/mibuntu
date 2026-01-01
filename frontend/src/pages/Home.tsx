@@ -169,7 +169,7 @@ function Home() {
                         </div>
                         <h3 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px' }}>1. Der KI-Lektionsplaner</h3>
                         <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px', fontStyle: 'italic' }}>
-                            Gebühr deckt reine API-Kosten
+                            Gebühr deckt API-Kosten
                         </p>
                         <p style={{ color: 'var(--color-text-secondary)', marginBottom: '32px', lineHeight: '1.6', fontSize: '16px' }}>
                             Nutzen Sie die Kraft von KI, aber bleiben Sie konform. Unser Planer referenziert automatisch den <strong>Lehrplan 21</strong> und erstellt maßgeschneiderte Unterrichtsmaterialien aus Ihren Inputs.
@@ -248,7 +248,7 @@ function Home() {
             {/* Mission Statement */}
             <div style={{ backgroundColor: '#111827', color: 'white', padding: '80px 0', textAlign: 'center' }}>
                 <div className="container">
-                    <h2 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '24px' }}>Unsere Mission</h2>
+                    <h2 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '24px', color: 'white' }}>Unsere Mission</h2>
                     <p style={{ fontSize: '18px', maxWidth: '700px', margin: '0 auto', lineHeight: '1.6', color: '#9CA3AF' }}>
                         "In Zeiten des Lehrermangels darf die Vermittlung keine Hürden haben.
                         Deshalb ist der Marktplatz für Stellvertretungen komplett kostenlos – so convenient wie eine WhatsApp-Gruppe, aber professionell und sicher.

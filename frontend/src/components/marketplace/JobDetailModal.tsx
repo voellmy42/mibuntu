@@ -390,6 +390,21 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
                                 Als Schulvertreter können Sie sich nicht bewerben.
                             </span>
                         </div>
+                    ) : !currentUser ? (
+                        <div style={{
+                            padding: '20px', backgroundColor: '#f3f4f6', borderRadius: '8px',
+                            textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center'
+                        }}>
+                            <p style={{ margin: 0, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                                Möchten Sie sich bewerben?
+                            </p>
+                            <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-secondary)' }}>
+                                Melden Sie sich an oder erstellen Sie ein Profil, um Kontakt mit der Schule aufzunehmen.
+                            </p>
+                            <a href="/login" className="btn-primary" style={{ display: 'inline-block', textDecoration: 'none', fontSize: '14px' }}>
+                                Jetzt Anmelden
+                            </a>
+                        </div>
                     ) : (
                         <>
                             <h3 style={{ fontSize: '18px', marginBottom: '12px' }}>Bewerbung</h3>
@@ -424,7 +439,7 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

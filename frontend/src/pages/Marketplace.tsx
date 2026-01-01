@@ -7,7 +7,8 @@ import { SUBJECTS, CYCLES, CANTONS } from '../data/constants';
 import { SWISS_LOCATIONS } from '../data/swiss_locations';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
-import { Calendar, MapPin, Inbox, FileText } from 'lucide-react';
+import { Calendar, MapPin, Inbox, Search, PlusCircle } from 'lucide-react';
+import EmptyState from '../components/common/EmptyState';
 
 const Marketplace = () => {
     const { currentUser, userProfile } = useAuth();
@@ -231,7 +232,19 @@ const Marketplace = () => {
                     {isLoading ? (
                         <div style={{ textAlign: 'center', padding: '40px' }}>Laden...</div>
                     ) : filteredJobs.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-secondary)' }}>Keine passenden Inserate gefunden.</div>
+                        <EmptyState
+                            icon={Search}
+                            title="Keine Inserate gefunden"
+                            description={
+                                filters.subject || filters.canton || filters.cycle
+                                    ? "Versuchen Sie, Ihre Filterkriterien anzupassen, um mehr Ergebnisse zu sehen."
+                                    : "Momentan sind keine passenden Stellvertretungen verfügbar. Schauen Sie später wieder vorbei."
+                            }
+                            action={{
+                                label: "Filter zurücksetzen",
+                                onClick: () => setFilters({ subject: '', cycle: '', canton: '' })
+                            }}
+                        />
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             {filteredJobs.map(job => (
@@ -302,10 +315,15 @@ const Marketplace = () => {
                         <div>
                             <h2 style={{ fontSize: '20px', marginBottom: '24px' }}>Meine Bewerbungen</h2>
                             {myApplications.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '40px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
-                                    <Inbox size={48} color="var(--color-text-tertiary)" style={{ marginBottom: '16px' }} />
-                                    <p style={{ color: 'var(--color-text-secondary)' }}>Sie haben sich noch auf keine Stellen beworben.</p>
-                                </div>
+                                <EmptyState
+                                    icon={Inbox}
+                                    title="Noch keine Bewerbungen"
+                                    description="Starten Sie Ihre Suche im Marktplatz und bewerben Sie sich auf interessante Stellen."
+                                    action={{
+                                        label: "Zum Marktplatz",
+                                        onClick: () => setActiveTab('search')
+                                    }}
+                                />
                             ) : (
                                 <div style={{ display: 'grid', gap: '16px' }}>
                                     {myApplications.map(app => (
@@ -343,10 +361,15 @@ const Marketplace = () => {
                         <div>
                             <h2 style={{ fontSize: '20px', marginBottom: '24px' }}>Meine Inserate</h2>
                             {myPostedJobs.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '40px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
-                                    <FileText size={48} color="var(--color-text-tertiary)" style={{ marginBottom: '16px' }} />
-                                    <p style={{ color: 'var(--color-text-secondary)' }}>Sie haben noch keine Inserate aufgegeben.</p>
-                                </div>
+                                <EmptyState
+                                    icon={PlusCircle}
+                                    title="Keine Inserate aufgegeben"
+                                    description="Erstellen Sie Ihr erstes Inserat, um qualifizierte Stellvertretungen zu finden."
+                                    action={{
+                                        label: "Inserat aufgeben",
+                                        onClick: () => setShowCreateModal(true)
+                                    }}
+                                />
                             ) : (
                                 <div style={{ display: 'grid', gap: '16px' }}>
                                     {myPostedJobs.map(job => (

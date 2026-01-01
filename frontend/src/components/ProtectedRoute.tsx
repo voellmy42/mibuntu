@@ -15,7 +15,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ requireOnboarding = tru
 
     // If not authenticated, redirect to Home
     if (!currentUser) {
-        return <Navigate to="/" />;
+        return <Navigate to="/login" />;
     }
 
     // If authenticated but no profile (role), redirect to Onboarding

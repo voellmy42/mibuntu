@@ -28,9 +28,10 @@ function App() {
                 <Route path="/onboarding" element={<Onboarding />} />
               </Route>
 
+              <Route path="/marketplace" element={<Marketplace />} />
+
               {/* Protected Routes that require a full profile (role) */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/marketplace" element={<Marketplace />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/subscription" element={<Subscription />} />
                 <Route path="/planner" element={<Planner />} />
