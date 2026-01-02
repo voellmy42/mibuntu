@@ -6,7 +6,7 @@ import {
     signOut,
     onAuthStateChanged
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 // Define the User Profile interface
@@ -56,13 +56,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchUserProfile = async (uid: string) => {
         try {
+            // 1. Fetch User Data
             const docRef = doc(db, 'users', uid);
             const docSnap = await getDoc(docRef);
 
+            let profileData: UserProfile | null = null;
             if (docSnap.exists()) {
-                setUserProfile(docSnap.data() as UserProfile);
+                profileData = docSnap.data() as UserProfile;
+            }
+
+            // 2. Check for Active Subscription (Stripe Extension)
+            // The extension writes to customers/{uid}/subscriptions
+            const subsRef = collection(db, 'customers', uid, 'subscriptions');
+            const q = query(subsRef, where('status', 'in', ['active', 'trialing']));
+            const querySnapshot = await getDocs(q);
+
+            const isPremium = !querySnapshot.empty;
+
+            if (profileData) {
+                // If we found an active Stripe subscription, force status to premium
+                if (isPremium) {
+                    profileData.subscriptionStatus = 'premium';
+                }
+                setUserProfile(profileData);
             } else {
-                setUserProfile(null);
+                // Handle case where user doc doesn't exist but auth does (rare)
+                if (isPremium) {
+                    // Create a minimal profile in memory if needed, or leave null
+                    // For now, consistent with logic:
+                    setUserProfile({ uid, email: currentUser?.email || null, displayName: currentUser?.displayName || null, photoURL: currentUser?.photoURL || null, subscriptionStatus: 'premium' });
+                } else {
+                    setUserProfile(null);
+                }
             }
         } catch (error) {
             console.error("Error fetching user profile:", error);

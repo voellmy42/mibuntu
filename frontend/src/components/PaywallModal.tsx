@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Check, X } from 'lucide-react';
 import '../styles/design_tokens.css';
@@ -11,8 +11,8 @@ interface PaywallModalProps {
     isOpen: boolean;
 }
 
-const PaywallModal: React.FC<PaywallModalProps> = ({ onClose, isOpen }) => {
-    const { currentUser, refreshProfile } = useAuth();
+const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
+    const { currentUser } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
@@ -24,22 +24,41 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ onClose, isOpen }) => {
 
         setLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // 1. Create a checkout session in Firestore
+            // The Firebase Extension will listen to this and communicate with Stripe
+            const collectionRef = collection(db, 'customers', currentUser.uid, 'checkout_sessions');
 
-            const userRef = doc(db, 'users', currentUser.uid);
-            await updateDoc(userRef, {
-                subscriptionStatus: 'premium',
-                subscriptionDate: Timestamp.now(),
-                paymentMethod: 'stripe'
+            // REPLACE THIS with your actual Price ID from the Stripe Dashboard!
+            // e.g., 'price_1Q...'
+            const PRICE_ID = 'price_1Sl4GnRyw3CBVJ4GW2oFvHiA';
+
+            const docRef = await addDoc(collectionRef, {
+                price: PRICE_ID,
+                success_url: window.location.origin,
+                cancel_url: window.location.origin,
             });
 
-            await refreshProfile();
-            if (onClose) onClose(); // Close modal on success
+            // 2. Listen for the extension to attach the Stripe Checkout URL
+            const unsubscribe = onSnapshot(docRef, (snap) => {
+                const { error, url } = snap.data() || {};
+
+                if (error) {
+                    console.error('Stripe error:', error.message);
+                    alert(`An error occurred: ${error.message}`);
+                    setLoading(false);
+                    unsubscribe();
+                }
+
+                if (url) {
+                    // 3. Redirect to Stripe
+                    window.location.assign(url);
+                    unsubscribe();
+                }
+            });
 
         } catch (error) {
-            console.error("Payment failed:", error);
-            alert("Payment failed. Please try again.");
-        } finally {
+            console.error("Payment initiation failed:", error);
+            alert("Could not start payment. Please try again.");
             setLoading(false);
         }
     };
