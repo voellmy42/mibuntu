@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Document, Packer, Paragraph, HeadingLevel, Header, Footer, TextRun, AlignmentType } from 'docx';
+import jsPDF from 'jspdf';
 import PptxGenJS from 'pptxgenjs';
 import { saveAs } from 'file-saver';
 import { generateLessonPlan, generateDossier, generateStudentHandout, generatePresentation } from '../services/gemini';
@@ -235,11 +236,54 @@ const Planner = () => {
         setIsGeneratingPdf(true);
         try {
             const effectiveApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+            // Generate content using the Dossier prompt - this returns Markdown text
             const dossierContent = await generateDossier(lastAiMessage.text, effectiveApiKey);
-            const blob = new Blob([dossierContent], { type: 'text/markdown' });
-            const url = URL.createObjectURL(blob);
-            saveAs(blob, `Lektions_Dossier-${new Date().toISOString().slice(0, 10)}.md`);
-            URL.revokeObjectURL(url);
+
+            // Create PDF using jsPDF
+            const doc = new jsPDF();
+
+            // Branding Header
+            doc.setFillColor(100, 108, 255); // Mibuntu Blue
+            doc.rect(0, 0, 210, 20, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Mibuntu | Lektions-Dossier', 10, 13);
+
+            // Reset for Content
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+
+            // Simple text wrapping for the markdown content
+            // Note: properly rendering rich markdown to PDF client-side is complex.
+            // We will do a best-effort text dump or simple splitting.
+            // For a better experience, we might want to use HTML rendering, but let's stick to text for stability.
+
+            const splitText = doc.splitTextToSize(dossierContent, 180);
+            let y = 30;
+
+            // Iterate and add pages if needed
+            for (let i = 0; i < splitText.length; i++) {
+                if (y > 280) {
+                    doc.addPage();
+                    y = 20; // Margin top on new page
+                }
+                doc.text(splitText[i], 15, y);
+                y += 6; // Line height
+            }
+
+            // Footer Branding
+            const pageCount = doc.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(9);
+                doc.setTextColor(150, 150, 150);
+                doc.text('Erstellt mit Mibuntu KI', 105, 290, { align: 'center' });
+            }
+
+            doc.save(`Lektions_Dossier-${new Date().toISOString().slice(0, 10)}.pdf`);
+
         } catch (error) { console.error("PDF generation failed", error); alert("Fehler beim Erstellen des PDFs."); }
         finally { setIsGeneratingPdf(false); }
     };
