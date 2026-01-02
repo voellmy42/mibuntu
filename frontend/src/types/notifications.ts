@@ -10,5 +10,5 @@ export interface Notification {
     read: boolean;
     createdAt: Timestamp;
     link?: string; // Optional link to redirect to
-    metadata?: any;
+    metadata?: Record<string, unknown>;
 }

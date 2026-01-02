@@ -64,6 +64,7 @@ const Profile: React.FC = () => {
 
             const userRef = doc(db, 'users', currentUser.uid);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const updates: any = {
                 canton,
                 updatedAt: serverTimestamp(),
@@ -84,7 +85,7 @@ const Profile: React.FC = () => {
             await refreshProfile();
             setSuccessMsg('Profil erfolgreich aktualisiert.');
             setTimeout(() => setSuccessMsg(''), 3000);
-        } catch (error: any) {
+        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error("Detailed error updating profile:", error);
             if (error.code === 'storage/unauthorized') {
                 alert("Fehler: Keine Berechtigung für Upload. Bitte 'storage.rules' in der Firebase Console prüfen.");

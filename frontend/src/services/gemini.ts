@@ -1,7 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 
 let genAI: GoogleGenerativeAI | null = null;
-let model: any = null;
+let model: GenerativeModel | null = null;
 
 export const initGemini = (apiKey: string) => {
     genAI = new GoogleGenerativeAI(apiKey);
@@ -34,7 +34,7 @@ export const generateLessonPlan = async (
 
     // Construct a rich prompt with context
     // ... (unchanged prompt construction) ...
-    let fullPrompt = `You are an expert educational assistant for Swiss teachers (Lehrplan 21).
+    const fullPrompt = `You are an expert educational assistant for Swiss teachers (Lehrplan 21).
     Per user request, you MUST show your thinking process before giving the final answer.
     Wrap your thinking process in <thinking> tags.
     IMPORTANT: You must ALWAYS respond in German (High German, formatted for Swiss teachers).
@@ -87,7 +87,7 @@ export const generateLessonPlan = async (
 
     try {
 
-        const result = await model.generateContent(fullPrompt);
+        const result = await model!.generateContent(fullPrompt);
         const response = await result.response;
         return response.text();
     } catch (error) {
@@ -141,7 +141,7 @@ export const generateDossier = async (
 
     try {
 
-        const result = await model.generateContent(prompt);
+        const result = await model!.generateContent(prompt);
         const response = await result.response;
         return response.text();
     } catch (error) {

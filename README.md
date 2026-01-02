@@ -1,6 +1,14 @@
 # Mibuntu - Die Plattform für Lehrpersonen
 
-Mibuntu ist eine Webapplikation, die Schweizer Lehrpersonen und Schulen verbindet. Sie bietet eine KI-gestützte Unterrichtsplanung und einen Marktplatz für Stellvertretungen.
+![Mibuntu Banner](https://img.shields.io/badge/Status-Active-success)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Mibuntu ist eine **Open-Source Webapplikation**, die Schweizer Lehrpersonen und Schulen verbindet.
+
+Wir glauben an **Transparenz** und **Zusammenarbeit**. Deshalb entwickeln wir Mibuntu offen und laden die Community ein, die Plattform mitzugestalten.
+
+## Unsere Mission
+"In Zeiten des Lehrermangels darf die Vermittlung keine Hürden haben. Deshalb ist der Marktplatz für Stellvertretungen komplett kostenlos – so convenient wie eine WhatsApp-Gruppe, aber professionell, sicher und als Open Source Projekt transparent für alle."
 
 ## Features
 
@@ -28,7 +36,7 @@ Voraussetzungen: Node.js und npm installiert.
 
 1. **Repository klonen**
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/voellmy42/mibuntu.git
    cd mibuntu
    ```
 
@@ -61,6 +69,14 @@ Das Projekt ist für Firebase Hosting konfiguriert.
    firebase deploy
    ```
    Dies lädt die *Firestore Rules*, *Storage Rules* und das *Hosting* (aus `frontend/dist`) hoch.
+
+## Mitmachen (Contributing)
+
+Wir freuen uns über jede Unterstützung! 
+
+- **Bug gefunden?** Erstelle ein Issue auf GitHub.
+- **Neue Idee?** Starte eine Diskussion.
+- **Code beitragen?** Forke das Repo und erstelle einen Pull Request.
 
 ## Projektstruktur
 

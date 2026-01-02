@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import {
     type User,
     GoogleAuthProvider,
@@ -8,27 +8,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-
-// Define the User Profile interface
-export interface UserProfile {
-    uid: string;
-    email: string | null;
-    displayName: string | null;
-    photoURL: string | null;
-    role?: 'teacher' | 'school_rep';
-    createdAt?: any;
-    canton?: string;
-    subjects?: string[];
-    levels?: string[];
-    schoolName?: string;
-    bio?: string;
-    phoneNumber?: string;
-    cvUrl?: string;
-    subscriptionStatus?: 'free' | 'premium';
-    subscriptionDate?: any;
-    aiInteractionCount?: number; // Track number of AI interactions
-    // Add other profile fields as needed
-}
+import type { UserProfile } from '../types/user';
 
 interface AuthContextType {
     currentUser: User | null;
@@ -41,6 +21,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
@@ -54,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchUserProfile = async (uid: string) => {
+    const fetchUserProfile = useCallback(async (uid: string) => {
         try {
             // 1. Fetch User Data
             const docRef = doc(db, 'users', uid);
@@ -84,7 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (isPremium) {
                     // Create a minimal profile in memory if needed, or leave null
                     // For now, consistent with logic:
-                    setUserProfile({ uid, email: currentUser?.email || null, displayName: currentUser?.displayName || null, photoURL: currentUser?.photoURL || null, subscriptionStatus: 'premium' });
+                    setUserProfile({
+                        uid,
+                        email: auth.currentUser?.email || null,
+                        displayName: auth.currentUser?.displayName || null,
+                        photoURL: auth.currentUser?.photoURL || null,
+                        subscriptionStatus: 'premium'
+                    });
                 } else {
                     setUserProfile(null);
                 }
@@ -93,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error("Error fetching user profile:", error);
             setUserProfile(null);
         }
-    };
+    }, [])
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -107,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         return unsubscribe;
-    }, []);
+    }, [fetchUserProfile]);
 
     const signInWithGoogle = async () => {
         const provider = new GoogleAuthProvider();

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { marketplaceService } from '../services/marketplace';
 import type { JobListing, JobApplication } from '../types/marketplace';
 import CreateJobModal from '../components/marketplace/CreateJobModal';
@@ -32,14 +32,14 @@ const Marketplace = () => {
         canton: ''
     });
 
-    const fetchJobs = async () => {
+    const fetchJobs = useCallback(async () => {
         setIsLoading(true);
         const data = await marketplaceService.getJobs();
         setJobs(data);
         setIsLoading(false);
-    };
+    }, []);
 
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = useCallback(async () => {
         if (!currentUser) return;
 
         if (userProfile?.role === 'teacher') {
@@ -59,15 +59,16 @@ const Marketplace = () => {
             }
             setApplicationsMap(appsMap);
         }
-    };
+    }, [currentUser, userProfile]);
 
+    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         if (activeTab === 'search') {
             fetchJobs();
         } else {
             fetchDashboardData();
         }
-    }, [activeTab, currentUser]);
+    }, [activeTab, fetchJobs, fetchDashboardData]);
 
     const { sendNotification } = useNotifications();
 

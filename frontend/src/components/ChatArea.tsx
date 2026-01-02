@@ -3,6 +3,7 @@ import { Send, Sparkles, Loader2, RefreshCw, Download } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { User } from 'firebase/auth';
 
 export interface Message {
     id: string;
@@ -18,7 +19,7 @@ interface ChatAreaProps {
     onSend: () => void;
     isProcessing: boolean;
     isContextReloading: boolean;
-    user: any;
+    user: User | null;
     onGenerateDossier?: () => void;
     usageCount?: number;
     isPremium?: boolean;
@@ -148,14 +149,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                                         <ReactMarkdown
                                             remarkPlugins={[remarkGfm]}
                                             components={{
-                                                h1: ({ node, ...props }) => <h1 style={{ fontSize: '1.4em', fontWeight: 700, margin: '16px 0 8px 0' }} {...props} />,
-                                                h2: ({ node, ...props }) => <h2 style={{ fontSize: '1.2em', fontWeight: 600, margin: '14px 0 8px 0' }} {...props} />,
-                                                h3: ({ node, ...props }) => <h3 style={{ fontSize: '1.1em', fontWeight: 600, margin: '12px 0 6px 0' }} {...props} />,
-                                                ul: ({ node, ...props }) => <ul style={{ paddingLeft: '20px', margin: '8px 0' }} {...props} />,
-                                                ol: ({ node, ...props }) => <ol style={{ paddingLeft: '20px', margin: '8px 0' }} {...props} />,
-                                                li: ({ node, ...props }) => <li style={{ margin: '4px 0' }} {...props} />,
-                                                p: ({ node, ...props }) => <p style={{ margin: '8px 0', lineHeight: 1.6 }} {...props} />,
-                                                strong: ({ node, ...props }) => <strong style={{ fontWeight: 600 }} {...props} />,
+                                                h1: ({ ...props }) => <h1 style={{ fontSize: '1.4em', fontWeight: 700, margin: '16px 0 8px 0' }} {...props} />,
+                                                h2: ({ ...props }) => <h2 style={{ fontSize: '1.2em', fontWeight: 600, margin: '14px 0 8px 0' }} {...props} />,
+                                                h3: ({ ...props }) => <h3 style={{ fontSize: '1.1em', fontWeight: 600, margin: '12px 0 6px 0' }} {...props} />,
+                                                ul: ({ ...props }) => <ul style={{ paddingLeft: '20px', margin: '8px 0' }} {...props} />,
+                                                ol: ({ ...props }) => <ol style={{ paddingLeft: '20px', margin: '8px 0' }} {...props} />,
+                                                li: ({ ...props }) => <li style={{ margin: '4px 0' }} {...props} />,
+                                                p: ({ ...props }) => <p style={{ margin: '8px 0', lineHeight: 1.6 }} {...props} />,
+                                                strong: ({ ...props }) => <strong style={{ fontWeight: 600 }} {...props} />,
                                             }}
                                         >
                                             {msg.text}

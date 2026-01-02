@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { generateLessonPlan, generateDossier } from '../services/gemini';
 import { extractTextFromPdf } from '../utils/pdfUtils';
 import SourceSidebar, { type UploadedFile } from '../components/SourceSidebar';
 import ChatArea, { type Message } from '../components/ChatArea';
 import OutputView from '../components/OutputView';
 import PlannerSetup from '../components/PlannerSetup';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'; // Auth imports
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'; // Auth imports
 import { auth, db } from '../firebase'; // Import db
 import { doc, updateDoc } from 'firebase/firestore'; // Firestore imports
 import { BookOpen, MessageSquare, Download } from 'lucide-react';
@@ -27,17 +27,7 @@ const useIsMobile = () => {
 
 const Planner = () => {
     // ... (Keep existing state)
-    // removed apiKey state
-    // removed showApiKeyInput state
-    const [user, setUser] = useState<any>(null);
-
-    // ... (Keep Auth Effect)
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-        });
-        return () => unsubscribe();
-    }, []);
+    const { currentUser, userProfile, refreshProfile } = useAuth();
 
     // ... (Keep Mobile State & Tab State)
     const isMobile = useIsMobile();
@@ -114,7 +104,8 @@ const Planner = () => {
     };
 
     // ... (Keep fetchLehrplanContext)
-    const fetchLehrplanContext = async (): Promise<string> => {
+    // ... (Keep fetchLehrplanContext)
+    const fetchLehrplanContext = useCallback(async (): Promise<string> => {
         let combinedText = '';
         const baseUrl = '/lehrplan/';
         for (const moduleId of activeSelectedModules) {
@@ -128,17 +119,16 @@ const Planner = () => {
             } catch (error) { console.error(error); }
         }
         return combinedText;
-    };
+    }, [activeSelectedModules]);
 
 
     // --- Context & State for Paywall ---
-    const { userProfile, refreshProfile } = useAuth();
     const [showPaywall, setShowPaywall] = useState(false);
 
-    const incrementUsage = async () => {
-        if (!user) return;
+    const incrementUsage = useCallback(async () => {
+        if (!currentUser) return;
         try {
-            const userRef = doc(db, 'users', user.uid);
+            const userRef = doc(db, 'users', currentUser.uid);
             await updateDoc(userRef, {
                 aiInteractionCount: (userProfile?.aiInteractionCount || 0) + 1
             });
@@ -146,9 +136,9 @@ const Planner = () => {
         } catch (e) {
             console.error("Failed to track usage", e);
         }
-    };
+    }, [currentUser, userProfile, refreshProfile]);
 
-    const processMessage = async (textInput: string) => {
+    const processMessage = useCallback(async (textInput: string) => {
         if (!textInput.trim()) return;
 
         // --- Usage Check ---
@@ -158,7 +148,7 @@ const Planner = () => {
 
         // Only check usage if user is logged in (implicit requirement, but safe to check)
         // If not logged in, they might not have a profile, but our Auth logic usually mandates login.
-        if (user && !isPremium && usageCount >= FREE_LIMIT) {
+        if (currentUser && !isPremium && usageCount >= FREE_LIMIT) {
             setShowPaywall(true);
             return;
         }
@@ -220,7 +210,7 @@ const Planner = () => {
         } finally {
             setIsProcessing(false);
         }
-    };
+    }, [currentUser, userProfile, activeCycle, activeWishes, activeUploadedFiles, fetchLehrplanContext, incrementUsage]); // Added basic deps, might need more refinement
 
     const handleSend = () => {
         processMessage(input);
@@ -229,9 +219,9 @@ const Planner = () => {
 
     // ... (Keep handleGenerateDossier, handleToggleFile, handleSetupStart, etc.)
     const handleGenerateDossier = async () => {
-        if (!user) {
+        if (!currentUser) {
             alert("Bitte loggen Sie sich ein.");
-            try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error) { return; }
+            try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch { return; }
         }
         const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai');
         if (!lastAiMessage) { alert("Noch kein Lektionsplan vorhanden."); return; }
@@ -280,7 +270,7 @@ const Planner = () => {
         if (isSetupComplete && activeWishes && messages.length === 0) {
             processMessage(activeWishes);
         }
-    }, [isSetupComplete, activeWishes]);
+    }, [isSetupComplete, activeWishes, processMessage, messages.length]);
 
     const handleReset = () => {
         setIsSetupComplete(false);
@@ -343,7 +333,7 @@ const Planner = () => {
                             onSend={handleSend}
                             isProcessing={isProcessing}
                             isContextReloading={isContextReloading}
-                            user={user}
+                            user={currentUser}
                             onGenerateDossier={handleGenerateDossier}
                             isGeneratingDossier={isGeneratingDossier}
                             usageCount={userProfile?.aiInteractionCount || 0}

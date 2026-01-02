@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { BrainCircuit, Briefcase, ChevronRight, Zap, ExternalLink, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { BrainCircuit, Briefcase, ChevronRight, Zap, ExternalLink, AlertTriangle, ShieldCheck, Github } from 'lucide-react';
 import '../styles/Home.css';
 
 function Home() {
@@ -243,6 +243,47 @@ function Home() {
                         </button>
                     </div>
                 </div>
+            </div>
+
+
+            {/* Open Source Section */}
+            <div className="container" style={{ marginBottom: '100px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                <div style={{
+                    background: '#F0FDF4',
+                    border: '1px solid #BBF7D0',
+                    color: '#166534',
+                    padding: '8px 16px',
+                    borderRadius: '99px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    marginBottom: '24px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                }}>
+                    <ShieldCheck size={16} /> Transparenz & Vertrauen
+                </div>
+
+                <h2 style={{ fontSize: '36px', fontWeight: 700, marginBottom: '24px' }}>
+                    Wir bauen Mibuntu gemeinsam.
+                </h2>
+                <p style={{ fontSize: '18px', color: 'var(--color-text-secondary)', maxWidth: '750px', lineHeight: '1.6', marginBottom: '40px' }}>
+                    Wir glauben, dass Bildungstechnologie keine "Black Box" sein darf. Deshalb ist unser Code öffentlich einsehbar (Open Source).
+                    Wir laden Entwickler, Lehrpersonen und Schulen ein, uns zu überprüfen und aktiv bei der Weiterentwicklung zu helfen.
+                </p>
+
+                <button
+                    className="btn-secondary"
+                    onClick={() => window.open('https://github.com/voellmy42/mibuntu', '_blank')}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28px',
+                        backgroundColor: '#24292F', color: 'white', border: 'none', cursor: 'pointer',
+                        borderRadius: 'var(--radius-md)', fontWeight: 600
+                    }}
+                >
+                    <Github size={20} />
+                    Code auf GitHub ansehen
+                </button>
             </div>
 
             {/* Mission Statement */}

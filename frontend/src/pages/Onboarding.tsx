@@ -47,6 +47,7 @@ const Onboarding: React.FC = () => {
             const userRef = doc(db, 'users', currentUser.uid);
 
             // Basic Profile Data
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const profileData: any = {
                 uid: currentUser.uid,
                 email: currentUser.email,
