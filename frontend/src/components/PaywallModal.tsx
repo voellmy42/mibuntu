@@ -28,12 +28,22 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
             // The Firebase Extension will listen to this and communicate with Stripe
             const collectionRef = collection(db, 'customers', currentUser.uid, 'checkout_sessions');
 
-            // REPLACE THIS with your actual Price ID from the Stripe Dashboard!
-            // e.g., 'price_1Q...'
-            const PRICE_ID = 'price_1Sl4GnRyw3CBVJ4GW2oFvHiA';
+            // Map plans to Stripe Price IDs
+            const PRICE_IDS = {
+                monthly: 'price_1Sl4GnRyw3CBVJ4GW2oFvHiA', // Current ID (Verify if this is for 5 CHF)
+                yearly: 'price_YEARLY_PLACEHOLDER' // TODO: Replace with actual Yearly Price ID
+            };
+
+            const priceId = PRICE_IDS[selectedPlan];
+
+            if (priceId === 'price_YEARLY_PLACEHOLDER') {
+                alert("Yearly plan is coming soon!");
+                setLoading(false);
+                return;
+            }
 
             const docRef = await addDoc(collectionRef, {
-                price: PRICE_ID,
+                price: priceId,
                 success_url: window.location.origin,
                 cancel_url: window.location.origin,
             });
@@ -189,26 +199,26 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
                                 Monthly
                             </button>
                             <button
-                                onClick={() => setSelectedPlan('yearly')}
+                                disabled
                                 style={{
                                     flex: 1,
                                     border: 'none',
-                                    background: selectedPlan === 'yearly' ? 'white' : 'transparent',
-                                    boxShadow: selectedPlan === 'yearly' ? 'var(--shadow-sm)' : 'none',
+                                    background: 'transparent',
                                     padding: '8px',
                                     borderRadius: 'var(--radius-md)',
                                     fontWeight: '600',
-                                    cursor: 'pointer',
-                                    color: selectedPlan === 'yearly' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'
+                                    cursor: 'not-allowed',
+                                    color: 'var(--color-text-tertiary)',
+                                    opacity: 0.6
                                 }}
                             >
-                                Yearly
+                                Yearly (Soon)
                             </button>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', lineHeight: 1 }}>
                             <span style={{ fontSize: '24px', fontWeight: '600', marginTop: '6px' }}>CHF</span>
                             <span style={{ fontSize: '42px', fontWeight: '800', marginLeft: '4px' }}>
-                                {selectedPlan === 'monthly' ? '9.90' : '95.00'}
+                                {selectedPlan === 'monthly' ? '5.00' : '50.00'}
                             </span>
                         </div>
                     </div>
@@ -236,7 +246,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
                             {loading ? "Processing..." : "Start Subscription"}
                         </button>
                         <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--color-text-tertiary)', marginTop: '8px' }}>
-                            Secured by MockPayment
+                            Secured by Stripe
                         </p>
                     </div>
                 </div>
