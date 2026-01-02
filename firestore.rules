@@ -48,5 +48,14 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null; 
     }
+
+    // Stripe Customers & Subscriptions
+    match /customers/{uid} {
+      allow read: if request.auth.uid == uid;
+      
+      match /subscriptions/{id} {
+        allow read: if request.auth.uid == uid;
+      }
+    }
   }
 }

@@ -48,11 +48,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // 2. Check for Active Subscription (Stripe Extension)
             // The extension writes to customers/{uid}/subscriptions
-            const subsRef = collection(db, 'customers', uid, 'subscriptions');
-            const q = query(subsRef, where('status', 'in', ['active', 'trialing']));
-            const querySnapshot = await getDocs(q);
-
-            const isPremium = !querySnapshot.empty;
+            let isPremium = false;
+            try {
+                const subsRef = collection(db, 'customers', uid, 'subscriptions');
+                const q = query(subsRef, where('status', 'in', ['active', 'trialing']));
+                const querySnapshot = await getDocs(q);
+                isPremium = !querySnapshot.empty;
+            } catch (subError) {
+                console.warn("Failed to check subscription status:", subError);
+                // Default to false (free) if check fails
+            }
 
             if (profileData) {
                 // If we found an active Stripe subscription, force status to premium
