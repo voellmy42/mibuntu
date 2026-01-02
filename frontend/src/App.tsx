@@ -11,6 +11,7 @@ import Onboarding from './pages/Onboarding';
 import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
 import PremiumRoute from './components/PremiumRoute';
+import Updates from './pages/Updates';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/updates" element={<Updates />} />
 
               {/* Protected Routes that require authentication but not necessarily a role yet */}
               <Route element={<ProtectedRoute requireOnboarding={false} />}>

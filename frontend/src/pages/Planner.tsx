@@ -1,16 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { generateLessonPlan, generateDossier } from '../services/gemini';
+import { Document, Packer, Paragraph, HeadingLevel, Header, Footer, TextRun, AlignmentType } from 'docx';
+import PptxGenJS from 'pptxgenjs';
+import { saveAs } from 'file-saver';
+import { generateLessonPlan, generateDossier, generateStudentHandout, generatePresentation } from '../services/gemini';
 import { extractTextFromPdf } from '../utils/pdfUtils';
 import SourceSidebar, { type UploadedFile } from '../components/SourceSidebar';
 import ChatArea, { type Message } from '../components/ChatArea';
 import OutputView from '../components/OutputView';
+import ExportModal from '../components/ExportModal';
 import PlannerSetup from '../components/PlannerSetup';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'; // Auth imports
-import { auth, db } from '../firebase'; // Import db
-import { doc, updateDoc } from 'firebase/firestore'; // Firestore imports
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth, db } from '../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import { BookOpen, MessageSquare, Download } from 'lucide-react';
-import { useAuth } from '../context/AuthContext'; // Import useAuth
-import PaywallModal from '../components/PaywallModal'; // Import PaywallModal
+import { useAuth } from '../context/AuthContext';
+import PaywallModal from '../components/PaywallModal';
+
 
 // ... (rest of imports)
 
@@ -45,7 +50,10 @@ const Planner = () => {
     const [input, setInput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isContextReloading, setIsContextReloading] = useState(false);
-    const [isGeneratingDossier, setIsGeneratingDossier] = useState(false);
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [isGeneratingWord, setIsGeneratingWord] = useState(false);
+    const [isGeneratingPpt, setIsGeneratingPpt] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
 
     const hasUnappliedChanges =
@@ -218,29 +226,217 @@ const Planner = () => {
     };
 
     // ... (Keep handleGenerateDossier, handleToggleFile, handleSetupStart, etc.)
-    const handleGenerateDossier = async () => {
-        if (!currentUser) {
-            alert("Bitte loggen Sie sich ein.");
-            try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch { return; }
-        }
-        const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai');
-        if (!lastAiMessage) { alert("Noch kein Lektionsplan vorhanden."); return; }
-        setIsGeneratingDossier(true);
+
+    const handleGeneratePdf = async () => {
+        if (!checkAuth()) return;
+        const lastAiMessage = getLastAiMessage();
+        if (!lastAiMessage) return;
+
+        setIsGeneratingPdf(true);
         try {
             const effectiveApiKey = import.meta.env.VITE_GEMINI_API_KEY;
             const dossierContent = await generateDossier(lastAiMessage.text, effectiveApiKey);
             const blob = new Blob([dossierContent], { type: 'text/markdown' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Lektions_Dossier-${new Date().toISOString().slice(0, 10)}.md`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            saveAs(blob, `Lektions_Dossier-${new Date().toISOString().slice(0, 10)}.md`);
             URL.revokeObjectURL(url);
-        } catch (error) { console.error("Dossier generation failed", error); alert("Fehler beim Erstellen des Dossiers."); }
-        finally { setIsGeneratingDossier(false); }
+        } catch (error) { console.error("PDF generation failed", error); alert("Fehler beim Erstellen des PDFs."); }
+        finally { setIsGeneratingPdf(false); }
     };
+
+    const handleGenerateWord = async () => {
+        if (!checkAuth()) return;
+        const lastAiMessage = getLastAiMessage();
+        if (!lastAiMessage) return;
+
+        setIsGeneratingWord(true);
+        try {
+            const effectiveApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+            const jsonString = await generateStudentHandout(lastAiMessage.text, effectiveApiKey);
+            const content = JSON.parse(jsonString);
+
+            // Create Document with Branding
+            const doc = new Document({
+                styles: {
+                    default: {
+                        heading1: {
+                            run: {
+                                color: "646CFF",
+                                bold: true,
+                                size: 32, // 16pt
+                            },
+                            paragraph: {
+                                spacing: { after: 120 },
+                            },
+                        },
+                    },
+                },
+                sections: [{
+                    properties: {},
+                    headers: {
+                        default: new Header({
+                            children: [
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({
+                                            text: "Mibuntu",
+                                            bold: true,
+                                            color: "646CFF",
+                                            size: 24,
+                                        }),
+                                        new TextRun({
+                                            text: " | Schüler-Dossier",
+                                            color: "9CA3AF",
+                                            size: 24,
+                                        }),
+                                    ],
+                                }),
+                            ],
+                        }),
+                    },
+                    footers: {
+                        default: new Footer({
+                            children: [
+                                new Paragraph({
+                                    alignment: AlignmentType.CENTER,
+                                    children: [
+                                        new TextRun({
+                                            text: "Erstellt mit Mibuntu KI",
+                                            color: "9CA3AF",
+                                            size: 16,
+                                        }),
+                                    ],
+                                }),
+                            ],
+                        }),
+                    },
+                    children: [
+                        new Paragraph({
+                            text: content.title || "Arbeitsblatt",
+                            heading: HeadingLevel.TITLE,
+                            alignment: AlignmentType.CENTER,
+                            run: {
+                                size: 48, // 24pt
+                                bold: true,
+                                color: "111827",
+                            },
+                            spacing: { after: 400 },
+                        }),
+                        ...(content.sections || []).flatMap((sec: any) => [
+                            new Paragraph({
+                                text: sec.title || "",
+                                heading: HeadingLevel.HEADING_1,
+                            }),
+                            new Paragraph({
+                                text: sec.content || "",
+                                spacing: { after: 200 },
+                            }),
+                            new Paragraph({ text: "" }),
+                        ])
+                    ],
+                }],
+            });
+
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, `Arbeitsblatt-${new Date().toISOString().slice(0, 10)}.docx`);
+
+        } catch (error) { console.error("Word generation failed", error); alert("Fehler beim Erstellen des Word-Dokuments."); }
+        finally { setIsGeneratingWord(false); }
+    };
+
+    const handleGeneratePpt = async () => {
+        if (!checkAuth()) return;
+        const lastAiMessage = getLastAiMessage();
+        if (!lastAiMessage) return;
+
+        setIsGeneratingPpt(true);
+        try {
+            const effectiveApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+            const jsonString = await generatePresentation(lastAiMessage.text, effectiveApiKey);
+            const content = JSON.parse(jsonString);
+
+            let pres = new PptxGenJS();
+            pres.layout = 'LAYOUT_16x9';
+
+            // Define Master Slide with Branding
+            pres.defineSlideMaster({
+                title: 'MASTER_SLIDE',
+                background: { color: 'FFFFFF' },
+                objects: [
+                    {
+                        text: {
+                            text: "Mibuntu",
+                            options: { x: 0.5, y: 0.2, fontSize: 14, color: '646CFF', bold: true }
+                        }
+                    },
+                    {
+                        line: {
+                            x: 0.5, y: 0.6, w: '90%', h: 0, line: { color: 'E5E7EB', width: 1 }
+                        }
+                    },
+                    {
+                        text: {
+                            text: "Erstellt mit Mibuntu KI",
+                            options: { x: 0.5, y: '92%', fontSize: 10, color: '9CA3AF' }
+                        }
+                    }
+                ]
+            });
+
+            // Title Slide (Custom Style)
+            let slide = pres.addSlide();
+            slide.background = { color: '646CFF' }; // Brand Color Background
+            slide.addText(content.title || "Präsentation", {
+                x: 1, y: 2, w: '80%', h: 1.5,
+                fontSize: 44, bold: true, align: 'center', color: 'FFFFFF'
+            });
+            slide.addText("Lektionsplan", {
+                x: 1, y: 3.5, w: '80%', h: 1,
+                fontSize: 20, align: 'center', color: 'E0E7FF'
+            });
+
+            // Content Slides
+            (content.slides || []).forEach((s: any) => {
+                let slide = pres.addSlide({ masterName: 'MASTER_SLIDE' });
+                slide.addText(s.title || "", {
+                    x: 0.5, y: 0.8, w: '90%', h: 0.8,
+                    fontSize: 28, bold: true, color: '111827'
+                });
+
+                if (s.bullets && Array.isArray(s.bullets)) {
+                    s.bullets.forEach((bullet: string, i: number) => {
+                        slide.addText(bullet, {
+                            x: 0.8, y: 1.8 + (i * 0.6), w: '85%', h: 0.5,
+                            fontSize: 18, color: '374151', bullet: { code: '2022' }
+                        });
+                    });
+                }
+                if (s.speakerNotes) {
+                    slide.addNotes(s.speakerNotes);
+                }
+            });
+
+            await pres.writeFile({ fileName: `Praesention-${new Date().toISOString().slice(0, 10)}.pptx` });
+
+        } catch (error) { console.error("PPT generation failed", error); alert("Fehler beim Erstellen der Präsentation."); }
+        finally { setIsGeneratingPpt(false); }
+    };
+
+    const checkAuth = () => {
+        if (!currentUser) {
+            alert("Bitte loggen Sie sich ein.");
+            signInWithPopup(auth, new GoogleAuthProvider()).catch(() => { });
+            return false;
+        }
+        return true;
+    };
+
+    const getLastAiMessage = () => {
+        const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai');
+        if (!lastAiMessage) { alert("Noch kein Lektionsplan vorhanden."); return null; }
+        return lastAiMessage;
+    };
+
 
     const handleToggleFile = (index: number) => {
         setDraftUploadedFiles(prev => {
@@ -294,6 +490,17 @@ const Planner = () => {
 
             {/* Paywall Modal */}
             <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
+            <ExportModal
+                isOpen={showExportModal}
+                onClose={() => setShowExportModal(false)}
+                onGeneratePdf={handleGeneratePdf}
+                onGenerateWord={handleGenerateWord}
+                onGeneratePpt={handleGeneratePpt}
+                isGeneratingPdf={isGeneratingPdf}
+                isGeneratingWord={isGeneratingWord}
+                isGeneratingPpt={isGeneratingPpt}
+                hasContent={hasAiContent}
+            />
 
             {/* Main Content Area */}
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
@@ -334,8 +541,7 @@ const Planner = () => {
                             isProcessing={isProcessing}
                             isContextReloading={isContextReloading}
                             user={currentUser}
-                            onGenerateDossier={handleGenerateDossier}
-                            isGeneratingDossier={isGeneratingDossier}
+                            onOpenExport={() => setShowExportModal(true)}
                             usageCount={userProfile?.aiInteractionCount || 0}
                             isPremium={userProfile?.subscriptionStatus === 'premium'}
                         />
@@ -346,8 +552,12 @@ const Planner = () => {
                 {isMobile && activeTab === 'output' && (
                     <div style={{ width: '100%', height: '100%', zIndex: 10, backgroundColor: 'white' }}>
                         <OutputView
-                            onGenerateDossier={handleGenerateDossier}
-                            isGeneratingDossier={isGeneratingDossier}
+                            onGeneratePdf={handleGeneratePdf}
+                            onGenerateWord={handleGenerateWord}
+                            onGeneratePpt={handleGeneratePpt}
+                            isGeneratingPdf={isGeneratingPdf}
+                            isGeneratingWord={isGeneratingWord}
+                            isGeneratingPpt={isGeneratingPpt}
                             hasContent={hasAiContent}
                         />
                     </div>

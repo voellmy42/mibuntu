@@ -20,10 +20,9 @@ interface ChatAreaProps {
     isProcessing: boolean;
     isContextReloading: boolean;
     user: User | null;
-    onGenerateDossier?: () => void;
+    onOpenExport?: () => void;
     usageCount?: number;
     isPremium?: boolean;
-    isGeneratingDossier?: boolean;
 }
 
 const ChatArea: React.FC<ChatAreaProps> = ({
@@ -34,8 +33,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     isProcessing,
     isContextReloading,
     user,
-    onGenerateDossier,
-    isGeneratingDossier,
+    onOpenExport,
     usageCount = 0,
     isPremium = false
 }) => {
@@ -69,8 +67,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
             }}>
                 {messages.some(m => m.sender === 'ai' && m.id !== '1') && (
                     <button
-                        onClick={onGenerateDossier}
-                        disabled={isGeneratingDossier}
+                        onClick={onOpenExport}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -79,19 +76,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                             border: '1px solid var(--color-border)',
                             padding: '8px 16px',
                             borderRadius: '100px',
-                            cursor: isGeneratingDossier ? 'wait' : 'pointer',
+                            cursor: 'pointer',
                             fontSize: '14px',
                             fontWeight: 500,
                             boxShadow: 'var(--shadow-sm)',
-                            opacity: isGeneratingDossier ? 0.7 : 1
                         }}
                     >
-                        {isGeneratingDossier ? (
-                            <Loader2 size={16} className="animate-spin" />
-                        ) : (
-                            <Download size={16} />
-                        )}
-                        {isGeneratingDossier ? "Erstelle Dossier..." : "Dossier erstellen"}
+                        <Download size={16} />
+                        Exportieren
                     </button>
                 )}
             </div>

@@ -149,3 +149,105 @@ export const generateDossier = async (
         throw error;
     }
 };
+
+export const generateStudentHandout = async (
+    lessonPlanText: string,
+    apiKey?: string
+): Promise<string> => {
+    if (apiKey) {
+        initGemini(apiKey);
+    }
+
+    if (!model) {
+        if (import.meta.env.VITE_GEMINI_API_KEY) {
+            initGemini(import.meta.env.VITE_GEMINI_API_KEY);
+        } else {
+            throw new Error("Gemini API Key is missing.");
+        }
+    }
+
+    const prompt = `
+    You are an expert educational assistant.
+    Create a STUDENT HANDOUT (Arbeitsblatt/Handout) based on this LESSON PLAN.
+
+    INPUT LESSON PLAN:
+    ${lessonPlanText}
+
+    INSTRUCTIONS:
+    1. The output must be valid JSON content.
+    2. Structure:
+    {
+      "title": "Title of the Handout",
+      "sections": [
+        { "title": "Section Title", "content": "Text content, instructions, or questions." }
+      ]
+    }
+    3. Content should be suitable for students (simple language, clear instructions).
+    4. Language: German.
+
+    OUTPUT ONLY THE JSON. No code fences around it if possible, or simple json code block.
+    `;
+
+    try {
+        const result = await model!.generateContent(prompt);
+        const response = await result.response;
+        let text = response.text();
+        // Clean up markdown code blocks if present
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        return text;
+    } catch (error) {
+        console.error("Gemini handout generation error:", error);
+        throw error;
+    }
+};
+
+export const generatePresentation = async (
+    lessonPlanText: string,
+    apiKey?: string
+): Promise<string> => {
+    if (apiKey) {
+        initGemini(apiKey);
+    }
+
+    if (!model) {
+        if (import.meta.env.VITE_GEMINI_API_KEY) {
+            initGemini(import.meta.env.VITE_GEMINI_API_KEY);
+        } else {
+            throw new Error("Gemini API Key is missing.");
+        }
+    }
+
+    const prompt = `
+    You are an expert educational assistant.
+    Create a PRESENTATION STRUCTURE (Slides) based on this LESSON PLAN.
+
+    INPUT LESSON PLAN:
+    ${lessonPlanText}
+
+    INSTRUCTIONS:
+    1. The output must be valid JSON content.
+    2. Structure:
+    {
+      "title": "Presentation Title",
+      "slides": [
+        { "title": "Slide Title", "bullets": ["Point 1", "Point 2"], "speakerNotes": "Notes for the teacher" }
+      ]
+    }
+    3. 16:9 aspect ratio suitable content.
+    4. Language: German.
+
+    OUTPUT ONLY THE JSON. No code fences around it if possible, or simple json code block.
+    `;
+
+    try {
+        const result = await model!.generateContent(prompt);
+        const response = await result.response;
+        let text = response.text();
+        // Clean up markdown code blocks if present
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        return text;
+    } catch (error) {
+        console.error("Gemini presentation generation error:", error);
+        throw error;
+    }
+};

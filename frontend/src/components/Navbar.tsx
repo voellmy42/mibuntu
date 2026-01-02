@@ -48,6 +48,7 @@ function Navbar() {
                     <div className="navbar-links">
                         <Link to="/planner" className="nav-link">Planer</Link>
                         <Link to="/marketplace" className="nav-link">Marktplatz</Link>
+                        <Link to="/updates" className="nav-link">Updates</Link>
                     </div>
                 </div>
 
