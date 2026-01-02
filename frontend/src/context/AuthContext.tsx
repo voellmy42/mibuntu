@@ -16,7 +16,7 @@ interface AuthContextType {
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
-    refreshProfile: () => Promise<void>;
+    refreshProfile: (optimisticData?: UserProfile) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -115,7 +115,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const refreshProfile = async () => {
+    const refreshProfile = async (optimisticData?: UserProfile) => {
+        if (optimisticData) {
+            setUserProfile(optimisticData);
+            return;
+        }
+        // Always fetch to ensure server consistency and get any triggered functions data (like subscription status)
         if (currentUser) {
             await fetchUserProfile(currentUser.uid);
         }

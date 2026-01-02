@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Calendar, MapPin, School, BookOpen, AlertCircle, CheckCircle, Mail, Phone, FileText } from 'lucide-react';
 import type { JobListing, JobApplication } from '../../types/marketplace';
 import { useAuth } from '../../context/AuthContext';
@@ -12,7 +13,8 @@ interface JobDetailModalProps {
 }
 
 const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalProps) => {
-    const { currentUser, userProfile } = useAuth();
+    const { currentUser, userProfile, loading } = useAuth();
+    const navigate = useNavigate();
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [hasApplied, setHasApplied] = useState(false);
@@ -63,6 +65,14 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
     const handleApplyClick = async () => {
         if (!currentUser) {
             alert("Bitte melden Sie sich an, um sich zu bewerben.");
+            return;
+        }
+
+        if (!userProfile?.role) {
+            // Redirect to onboarding if profile is incomplete
+            if (confirm("Ihr Profil ist noch nicht vollständig. Bitte vervollständigen Sie es, um sich zu bewerben.")) {
+                navigate('/onboarding');
+            }
             return;
         }
 
@@ -247,7 +257,9 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
 
                 {/* Application Section */}
                 <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '24px' }}>
-                    {isJobOwner ? (
+                    {loading ? (
+                        <div style={{ textAlign: 'center', padding: '20px' }}>Loading...</div>
+                    ) : isJobOwner ? (
                         <div style={{ padding: '8px 0' }}>
                             <div style={{
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px',
@@ -390,7 +402,7 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
                                 Als Schulvertreter können Sie sich nicht bewerben.
                             </span>
                         </div>
-                    ) : !currentUser ? (
+                    ) : !currentUser || !userProfile?.role ? (
                         <div style={{
                             padding: '20px', backgroundColor: '#f3f4f6', borderRadius: '8px',
                             textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center'
@@ -399,11 +411,18 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
                                 Möchten Sie sich bewerben?
                             </p>
                             <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-secondary)' }}>
-                                Melden Sie sich an oder erstellen Sie ein Profil, um Kontakt mit der Schule aufzunehmen.
+                                {!currentUser
+                                    ? "Melden Sie sich an oder erstellen Sie ein Profil, um Kontakt mit der Schule aufzunehmen."
+                                    : "Bitte vervollständigen Sie Ihr Profil, um sich zu bewerben."
+                                }
                             </p>
-                            <a href="/login" className="btn-primary" style={{ display: 'inline-block', textDecoration: 'none', fontSize: '14px' }}>
-                                Jetzt Anmelden
-                            </a>
+                            <button
+                                onClick={() => navigate(!currentUser ? "/login" : "/onboarding")}
+                                className="btn-primary"
+                                style={{ display: 'inline-block', fontSize: '14px', border: 'none', cursor: 'pointer' }}
+                            >
+                                {!currentUser ? "Jetzt Anmelden" : "Profil vervollständigen"}
+                            </button>
                         </div>
                     ) : (
                         <>
