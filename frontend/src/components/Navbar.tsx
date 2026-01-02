@@ -40,6 +40,7 @@ function Navbar() {
         <nav className="navbar">
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '1280px', margin: '0 auto' }}>
                 <Link to="/" className="navbar-logo">
+                    <img src="/logo.png" alt="Mibuntu Logo" className="logo-image" />
                     <span className="logo-text">Mibuntu</span>
                 </Link>
 

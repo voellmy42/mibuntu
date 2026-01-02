@@ -28,6 +28,11 @@
     opacity: 0.8;
 }
 
+.logo-image {
+    height: 40px;
+    width: auto;
+}
+
 .logo-text {
     font-size: var(--font-size-xl);
     font-weight: 700;
