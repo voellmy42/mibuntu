@@ -4,7 +4,9 @@ import {
     GoogleAuthProvider,
     signInWithPopup,
     signOut,
-    onAuthStateChanged
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
@@ -15,6 +17,8 @@ interface AuthContextType {
     userProfile: UserProfile | null;
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
+    loginWithEmail: (email: string, password: string) => Promise<void>;
+    registerWithEmail: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     refreshProfile: (optimisticData?: UserProfile) => Promise<void>;
 }
@@ -111,6 +115,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const loginWithEmail = async (email: string, password: string) => {
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            console.error("Error signing in with Email:", error);
+            throw error;
+        }
+    };
+
+    const registerWithEmail = async (email: string, password: string) => {
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            console.error("Error registering with Email:", error);
+            throw error;
+        }
+    };
+
     const logout = async () => {
         try {
             await signOut(auth);
@@ -136,6 +158,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userProfile,
         loading,
         signInWithGoogle,
+        loginWithEmail,
+        registerWithEmail,
         logout,
         refreshProfile
     };

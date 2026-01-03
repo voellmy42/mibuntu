@@ -1,28 +1,60 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Sparkles } from 'lucide-react';
 import '../styles/Login.css';
 
 const Login: React.FC = () => {
-    const { signInWithGoogle, currentUser } = useAuth();
+    const { signInWithGoogle, loginWithEmail, registerWithEmail, currentUser } = useAuth();
     const navigate = useNavigate();
+
+    const [isRegistering, setIsRegistering] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (currentUser) {
-            // Check handled by Home or ProtectedRoute usually, but if user landed here explicitly:
-            // If they have a role, go to planner, else onboarding.
-            // But we can't check role easily here without context drill-down waiting.
-            // Safest: go to /onboarding, which redirects to /planner if complete.
             navigate('/onboarding');
         }
     }, [currentUser, navigate]);
 
-    const handleLogin = async () => {
+    const handleGoogleLogin = async () => {
         try {
+            setError('');
             await signInWithGoogle();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to sign in", error);
+            setError('Google Anmeldung fehlgeschlagen.');
+        }
+    };
+
+    const handleEmailAuth = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            if (isRegistering) {
+                await registerWithEmail(email, password);
+            } else {
+                await loginWithEmail(email, password);
+            }
+            // Navigation handled by useEffect
+        } catch (err: any) {
+            console.error("Auth error:", err);
+            let msg = 'Ein Fehler ist aufgetreten.';
+            if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+                msg = 'E-Mail oder Passwort falsch.';
+            } else if (err.code === 'auth/email-already-in-use') {
+                msg = 'Diese E-Mail wird bereits verwendet.';
+            } else if (err.code === 'auth/weak-password') {
+                msg = 'Das Passwort ist zu schwach (min. 6 Zeichen).';
+            }
+            setError(msg);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -38,24 +70,81 @@ const Login: React.FC = () => {
                 </div>
 
                 <h1 className="login-title">
-                    Willkommen zurück
+                    {isRegistering ? 'Konto erstellen' : 'Willkommen zurück'}
                 </h1>
 
                 <p className="login-subtitle">
-                    Melden Sie sich an, um Ihren Unterricht zu planen oder Stellvertretungen zu verwalten.
+                    {isRegistering
+                        ? 'Erstellen Sie ein Konto, um loszulegen.'
+                        : 'Melden Sie sich an, um Ihren Unterricht zu planen oder Stellvertretungen zu verwalten.'}
                 </p>
 
+                <form onSubmit={handleEmailAuth} className="login-form">
+                    <div className="form-group">
+                        <input
+                            type="email"
+                            className="form-input"
+                            placeholder="E-Mail Adresse"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="form-group" style={{ marginTop: '12px' }}>
+                        <input
+                            type="password"
+                            className="form-input"
+                            placeholder="Passwort"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            minLength={6}
+                        />
+                    </div>
+
+                    {error && <div className="login-error">{error}</div>}
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="btn-primary"
+                        style={{ width: '100%', marginTop: '24px', padding: '12px', fontSize: '16px' }}
+                    >
+                        {loading ? 'Laden...' : (isRegistering ? 'Registrieren' : 'Anmelden')}
+                    </button>
+                </form>
+
+                <div className="login-divider">
+                    <span>oder</span>
+                </div>
+
                 <button
-                    onClick={handleLogin}
+                    onClick={handleGoogleLogin}
                     className="login-btn-google"
+                    type="button"
                 >
                     <img
                         src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
                         alt="Google"
                         style={{ width: '20px', height: '20px' }}
                     />
-                    <span>Weiter mit Google</span>
+                    <span>{isRegistering ? 'Registrieren mit Google' : 'Weiter mit Google'}</span>
                 </button>
+
+                <div className="login-toggle">
+                    {isRegistering ? 'Bereits ein Konto?' : 'Noch kein Konto?'}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsRegistering(!isRegistering);
+                            setError('');
+                        }}
+                        className="login-link"
+                        style={{ background: 'none', border: 'none', padding: 0, marginLeft: '5px', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit', color: 'var(--color-brand)' }}
+                    >
+                        {isRegistering ? 'Anmelden' : 'Registrieren'}
+                    </button>
+                </div>
 
                 <div className="login-footer">
                     Durch die Anmeldung akzeptieren Sie unsere<br />

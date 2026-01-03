@@ -16,6 +16,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     if (!isOpen) return null;
 
@@ -23,21 +24,22 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
         if (!currentUser) return;
 
         setLoading(true);
+        setErrorMessage(null); // Clear previous errors
         try {
+            console.log("Initiating payment for user:", currentUser.uid);
             // 1. Create a checkout session in Firestore
-            // The Firebase Extension will listen to this and communicate with Stripe
             const collectionRef = collection(db, 'customers', currentUser.uid, 'checkout_sessions');
 
             // Map plans to Stripe Price IDs
             const PRICE_IDS = {
                 monthly: 'price_1Sl4GnRyw3CBVJ4GW2oFvHiA', // Current ID (Verify if this is for 5 CHF)
-                yearly: 'price_YEARLY_PLACEHOLDER' // TODO: Replace with actual Yearly Price ID
+                yearly: 'price_YEARLY_PLACEHOLDER'
             };
 
             const priceId = PRICE_IDS[selectedPlan];
 
             if (priceId === 'price_YEARLY_PLACEHOLDER') {
-                alert("Yearly plan is coming soon!");
+                setErrorMessage("Yearly plan is coming soon!");
                 setLoading(false);
                 return;
             }
@@ -48,27 +50,44 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
                 cancel_url: window.location.origin,
             });
 
+            console.log("Checkout session document created with ID:", docRef.id);
+
             // 2. Listen for the extension to attach the Stripe Checkout URL
-            const unsubscribe = onSnapshot(docRef, (snap) => {
-                const { error, url } = snap.data() || {};
+            let unsubscribe: (() => void) | undefined;
+            const timeoutId = setTimeout(() => {
+                if (unsubscribe) unsubscribe();
+                setLoading(false);
+                const msg = "Payment system is not responding. Please contact support or check if the Stripe Extension is active.";
+                console.error("Payment timeout:", msg);
+                setErrorMessage(msg);
+            }, 15000); // 15 seconds timeout
+
+            unsubscribe = onSnapshot(docRef, (snap) => {
+                const data = snap.data();
+                if (!data) return;
+
+                const { error, url } = data;
 
                 if (error) {
+                    clearTimeout(timeoutId);
                     console.error('Stripe error:', error.message);
-                    alert(`An error occurred: ${error.message}`);
+                    setErrorMessage(`An error occurred: ${error.message}`);
                     setLoading(false);
-                    unsubscribe();
+                    if (unsubscribe) unsubscribe();
                 }
 
                 if (url) {
+                    clearTimeout(timeoutId);
+                    console.log("Redirecting to Stripe:", url);
                     // 3. Redirect to Stripe
                     window.location.assign(url);
-                    unsubscribe();
+                    if (unsubscribe) unsubscribe();
                 }
             });
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Payment initiation failed:", error);
-            alert("Could not start payment. Please try again.");
+            setErrorMessage(`Could not start payment: ${error.message || "Unknown error"}`);
             setLoading(false);
         }
     };
@@ -224,6 +243,19 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+                        {errorMessage && (
+                            <div style={{
+                                color: 'var(--color-error)',
+                                backgroundColor: '#FEF2F2',
+                                padding: '8px',
+                                borderRadius: 'var(--radius-md)',
+                                fontSize: '14px',
+                                textAlign: 'center',
+                                border: '1px solid var(--color-error)'
+                            }}>
+                                {errorMessage}
+                            </div>
+                        )}
                         <button
                             onClick={handlePayment}
                             disabled={loading}
@@ -240,7 +272,8 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
                                 cursor: 'pointer',
                                 fontWeight: '600',
                                 fontSize: '16px',
-                                width: '100%'
+                                width: '100%',
+                                opacity: loading ? 0.7 : 1
                             }}
                         >
                             {loading ? "Processing..." : "Start Subscription"}
