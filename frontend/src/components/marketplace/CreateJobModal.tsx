@@ -9,6 +9,7 @@ import 'react-day-picker/dist/style.css';
 
 import { SWISS_LOCATIONS } from '../../data/swiss_locations';
 import { SUBJECTS, CYCLES, DAYS_OF_WEEK, CANTONS } from '../../data/constants';
+import { getGoogleMapsLink, getStaticMapUrl } from '../../utils/mapUtils';
 
 interface CreateJobModalProps {
     onClose: () => void;
@@ -91,6 +92,9 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onJobCreated }
                 return;
             }
 
+            const mapUrl = getStaticMapUrl(formData.school || '', formData.location);
+            const mapsLink = getGoogleMapsLink(formData.school || '', formData.location);
+
             // Construct the Job object
             const newJob: Omit<JobListing, 'id' | 'createdAt'> = {
                 userId: currentUser?.uid || '',
@@ -106,7 +110,9 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onJobCreated }
                 pay: formData.pay,
                 urgent: formData.urgent,
                 description: formData.description,
-                imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80', // default image
+                imageUrl: mapUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+                mapImageUrl: mapUrl,
+                googleMapsLink: mapsLink,
                 status: 'open'
             };
 

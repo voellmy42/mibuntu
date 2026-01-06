@@ -16,6 +16,8 @@ export interface JobListing {
     description: string;
     createdAt: number;
     imageUrl?: string; // Optional cover image
+    mapImageUrl?: string; // Static map preview
+    googleMapsLink?: string; // Link to Google Maps
     status: 'open' | 'filled'; // Defaults to 'open'
 }
 

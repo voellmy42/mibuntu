@@ -4,6 +4,7 @@ import { X, Calendar, MapPin, School, BookOpen, AlertCircle, CheckCircle, Mail, 
 import type { JobListing, JobApplication } from '../../types/marketplace';
 import { useAuth } from '../../context/AuthContext';
 import { marketplaceService } from '../../services/marketplace';
+import { getGoogleMapsLink } from '../../utils/mapUtils';
 
 interface JobDetailModalProps {
     job: JobListing;
@@ -46,7 +47,7 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
 
             // If accepted, close the job
             if (status === 'accepted' && job.id) {
-                await marketplaceService.updateJob(job.id, { status: 'filled' } as const);
+                await marketplaceService.updateJob(job.id, { status: 'filled' });
                 if (onJobUpdate) {
                     onJobUpdate(job.id, { status: 'filled' });
                 }
@@ -143,9 +144,6 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
                     <div style={{ color: 'green', marginBottom: '20px' }}>
                         <CheckCircle size={64} />
                     </div>
-                    {/* We can differentiate message if just checking existing vs newly applied, 
-                        but for now reusing the success state is a simple way to block duplicate apply. 
-                        Refining to show 'Bereits beworben' instead of 'Versendet!' if it was pre-existing would be better. */}
                     <h2>Bereits beworben</h2>
                     <p style={{ color: 'var(--color-text-secondary)', marginBottom: '32px' }}>
                         Sie haben sich bereits auf diese Stelle beworben.
@@ -215,8 +213,27 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
                             <span>{job.school || 'Schule'}</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <MapPin size={18} />
-                            <span>{job.location} ({job.canton})</span>
+                            {(() => {
+                                const mapsLink = job.googleMapsLink || getGoogleMapsLink(job.school || '', job.location);
+                                return (
+                                    <>
+                                        <MapPin size={18} color={mapsLink ? 'var(--color-primary)' : 'currentColor'} />
+                                        {mapsLink ? (
+                                            <a
+                                                href={mapsLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}
+                                                title="Auf Google Maps öffnen"
+                                            >
+                                                {job.location} ({job.canton})
+                                            </a>
+                                        ) : (
+                                            <span>{job.location} ({job.canton})</span>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -458,7 +475,7 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
                     )}
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 

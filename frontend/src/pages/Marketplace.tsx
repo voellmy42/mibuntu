@@ -7,6 +7,7 @@ import { SUBJECTS, CYCLES, CANTONS } from '../data/constants';
 import { SWISS_LOCATIONS } from '../data/swiss_locations';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { getStaticMapUrl, getGoogleMapsLink } from '../utils/mapUtils';
 import { Calendar, MapPin, Inbox, Search, PlusCircle } from 'lucide-react';
 import EmptyState from '../components/common/EmptyState';
 
@@ -251,16 +252,18 @@ const Marketplace = () => {
                             {filteredJobs.map(job => (
                                 <div key={job.id}
                                     onClick={() => setSelectedJob(job)}
-                                    className="job-card" // Assuming CSS class exists or inline below
+                                    className="job-card"
                                     style={{
                                         backgroundColor: 'white',
                                         borderRadius: '12px',
-                                        padding: '24px',
                                         border: '1px solid var(--color-border)',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s ease',
                                         boxShadow: 'var(--shadow-sm)',
-                                        position: 'relative'
+                                        position: 'relative',
+                                        overflow: 'hidden', // Ensure image respects radius
+                                        display: 'flex',
+                                        flexDirection: 'column'
                                     }}
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.transform = 'translateY(-2px)';
@@ -273,32 +276,82 @@ const Marketplace = () => {
                                         e.currentTarget.style.borderColor = 'var(--color-border)';
                                     }}
                                 >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
-                                        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                                            {job.title || job.subject}
-                                        </h3>
+                                    {/* Image Header */}
+                                    <div style={{
+                                        height: '180px',
+                                        width: '100%',
+                                        backgroundColor: '#e5e7eb',
+                                        backgroundImage: `url(${
+                                            // Prefer explicit mapImageUrl, then try to generate one dynamically if key is present, fallback to imageUrl
+                                            job.mapImageUrl ||
+                                            getStaticMapUrl(job.school || '', job.location) ||
+                                            job.imageUrl
+                                            })`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        position: 'relative'
+                                    }}>
                                         {job.urgent && (
                                             <span style={{
+                                                position: 'absolute',
+                                                top: '12px',
+                                                right: '12px',
                                                 backgroundColor: '#fee2e2', color: '#dc2626',
                                                 padding: '4px 8px', borderRadius: '4px',
-                                                fontSize: '12px', fontWeight: 700, textTransform: 'uppercase'
+                                                fontSize: '12px', fontWeight: 700, textTransform: 'uppercase',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                             }}>
                                                 Dringend
                                             </span>
                                         )}
                                     </div>
-                                    <div style={{ marginBottom: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                        <span className="badge badge-primary">{job.subject}</span>
-                                        <span className="badge badge-secondary">{job.cycle}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '24px', color: 'var(--color-text-secondary)', fontSize: '15px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <MapPin size={16} />
-                                            <span>{job.location}</span>
+
+                                    {/* Content */}
+                                    <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                        <div style={{ marginBottom: '12px' }}>
+                                            <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                                                {job.title || job.subject}
+                                            </h3>
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                <span className="badge badge-primary">{job.subject}</span>
+                                                <span className="badge badge-secondary">{job.cycle}</span>
+                                            </div>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Calendar size={16} />
-                                            <span>{job.startDate}</span>
+
+                                        <div style={{
+                                            marginTop: 'auto',
+                                            display: 'flex',
+                                            gap: '24px',
+                                            color: 'var(--color-text-secondary)',
+                                            fontSize: '15px',
+                                            borderTop: '1px solid var(--color-border)',
+                                            paddingTop: '16px'
+                                        }}>
+                                            <div
+                                                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                onClick={(e) => {
+                                                    const link = job.googleMapsLink || getGoogleMapsLink(job.school || '', job.location);
+                                                    if (link) {
+                                                        e.stopPropagation();
+                                                        window.open(link, '_blank');
+                                                    }
+                                                }}
+                                                title="Auf Google Maps anzeigen"
+                                                role="button"
+                                                tabIndex={0}
+                                            >
+                                                <MapPin size={16} color="var(--color-primary)" />
+                                                <span style={{
+                                                    textDecoration: 'underline',
+                                                    cursor: 'pointer'
+                                                }}>
+                                                    {job.location}
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Calendar size={16} />
+                                                <span>{job.startDate}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
