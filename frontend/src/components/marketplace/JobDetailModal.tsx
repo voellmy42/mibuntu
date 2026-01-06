@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Calendar, MapPin, School, BookOpen, AlertCircle, CheckCircle, Mail, Phone, FileText } from 'lucide-react';
+import { X, Calendar, MapPin, School, BookOpen, AlertCircle, CheckCircle, Mail, Phone, FileText, Heart, Share2 } from 'lucide-react';
+import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { db } from '../../firebase';
 import type { JobListing, JobApplication } from '../../types/marketplace';
 import { useAuth } from '../../context/AuthContext';
 import { marketplaceService } from '../../services/marketplace';
@@ -14,12 +16,14 @@ interface JobDetailModalProps {
 }
 
 const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalProps) => {
-    const { currentUser, userProfile, loading } = useAuth();
+    const { currentUser, userProfile, loading, refreshProfile } = useAuth();
     const navigate = useNavigate();
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [hasApplied, setHasApplied] = useState(false);
     const [error, setError] = useState('');
+    const [isLiked, setIsLiked] = useState(false);
+    const [showCopySuccess, setShowCopySuccess] = useState(false);
 
     // School Rep Review State
     const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -40,6 +44,41 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
             loadApps();
         }
     }, [job.id, isJobOwner]);
+
+    useEffect(() => {
+        if (userProfile?.likedJobs && job.id) {
+            setIsLiked(userProfile.likedJobs.includes(job.id));
+        }
+    }, [userProfile, job.id]);
+
+    const handleLike = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!currentUser || !job.id) return;
+
+        const newStatus = !isLiked;
+        // Optimistic update
+        setIsLiked(newStatus);
+
+        try {
+            const userRef = doc(db, 'users', currentUser.uid);
+            await updateDoc(userRef, {
+                likedJobs: newStatus ? arrayUnion(job.id) : arrayRemove(job.id)
+            });
+            refreshProfile(); // Refresh context
+        } catch (error) {
+            console.error("Error updating like status:", error);
+            setIsLiked(!newStatus); // Revert
+        }
+    };
+
+    const handleShare = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const url = `${window.location.origin}/marketplace?jobId=${job.id}`;
+        navigator.clipboard.writeText(url).then(() => {
+            setShowCopySuccess(true);
+            setTimeout(() => setShowCopySuccess(false), 2000);
+        });
+    };
 
     const handleStatusUpdate = async (appId: string, status: 'accepted' | 'rejected') => {
         try {
@@ -191,6 +230,65 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
                 }}>
                     <X size={24} />
                 </button>
+
+                <div style={{ display: 'flex', gap: '8px', position: 'absolute', top: '24px', right: '60px' }}>
+                    <button
+                        onClick={handleLike}
+                        title={isLiked ? "Von Merkliste entfernen" : "Auf Merkliste setzen"}
+                        style={{
+                            background: 'white',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: '50%',
+                            width: '40px',
+                            height: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <Heart
+                            size={20}
+                            fill={isLiked ? "#ef4444" : "none"}
+                            color={isLiked ? "#ef4444" : "#6b7280"}
+                        />
+                    </button>
+                    <button
+                        onClick={handleShare}
+                        title="Link kopieren"
+                        style={{
+                            background: 'white',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: '50%',
+                            width: '40px',
+                            height: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            position: 'relative'
+                        }}
+                    >
+                        <Share2 size={20} color="#6b7280" />
+                        {showCopySuccess && (
+                            <div style={{
+                                position: 'absolute',
+                                bottom: '-30px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                backgroundColor: 'black',
+                                color: 'white',
+                                fontSize: '12px',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                Kopiert!
+                            </div>
+                        )}
+                    </button>
+                </div>
 
                 <div style={{ marginBottom: '24px' }}>
                     <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
@@ -474,8 +572,8 @@ const JobDetailModal = ({ job, onClose, onJobUpdate, onApply }: JobDetailModalPr
                         </>
                     )}
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

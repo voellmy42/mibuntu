@@ -7,7 +7,8 @@ import {
     where,
     orderBy,
     updateDoc,
-    doc
+    doc,
+    getDoc
 } from 'firebase/firestore';
 import type { JobListing, JobApplication } from '../types/marketplace';
 
@@ -30,6 +31,20 @@ export const marketplaceService = {
         } catch (error) {
             console.error("Error fetching jobs:", error);
             return [];
+        }
+    },
+
+    getJob: async (jobId: string): Promise<JobListing | null> => {
+        try {
+            const docRef = doc(db, JOBS_COLLECTION, jobId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return { id: docSnap.id, ...docSnap.data() } as JobListing;
+            }
+            return null;
+        } catch (error) {
+            console.error("Error fetching job:", error);
+            return null;
         }
     },
 

@@ -17,4 +17,6 @@ export interface UserProfile {
     subscriptionStatus?: 'free' | 'premium';
     subscriptionDate?: Timestamp;
     aiInteractionCount?: number; // Track number of AI interactions
+    additionalDocuments?: { name: string; url: string }[];
+    likedJobs?: string[];
 }

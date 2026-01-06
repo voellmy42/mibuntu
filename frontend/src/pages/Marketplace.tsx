@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { marketplaceService } from '../services/marketplace';
 import type { JobListing, JobApplication } from '../types/marketplace';
 import CreateJobModal from '../components/marketplace/CreateJobModal';
@@ -25,6 +26,7 @@ const Marketplace = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // Filter State
     const [filters, setFilters] = useState({
@@ -116,6 +118,42 @@ const Marketplace = () => {
 
         return matches;
     });
+
+    // URL Sync for Direct Links
+    useEffect(() => {
+        const jobId = searchParams.get('jobId');
+        if (jobId && !selectedJob && !isLoading && jobs.length > 0) {
+            // Try to find in loaded jobs first
+            const job = jobs.find(j => j.id === jobId);
+            if (job) {
+                setSelectedJob(job);
+            } else {
+                // Fetch specific if not found (e.g. filtered out or pagination)
+                marketplaceService.getJob(jobId).then(j => {
+                    if (j) setSelectedJob(j);
+                });
+            }
+        } else if (!jobId && selectedJob) {
+            // If user navigates back/clears param, close modal
+            setSelectedJob(null);
+        }
+    }, [searchParams, jobs, isLoading]); // Careful with deps loop
+
+    const openJob = (job: JobListing) => {
+        setSelectedJob(job);
+        setSearchParams(prev => {
+            prev.set('jobId', job.id!);
+            return prev;
+        });
+    };
+
+    const closeJob = () => {
+        setSelectedJob(null);
+        setSearchParams(prev => {
+            prev.delete('jobId');
+            return prev;
+        });
+    };
 
     return (
         <div className="container" style={{ paddingBottom: '80px', maxWidth: '1000px', margin: '0 auto' }}>
@@ -251,7 +289,7 @@ const Marketplace = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             {filteredJobs.map(job => (
                                 <div key={job.id}
-                                    onClick={() => setSelectedJob(job)}
+                                    onClick={() => openJob(job)}
                                     className="job-card"
                                     style={{
                                         backgroundColor: 'white',
@@ -459,7 +497,7 @@ const Marketplace = () => {
                                                         Bewerbungen ({applicationsMap[job.id!]?.length || 0})
                                                     </span>
                                                     <button
-                                                        onClick={() => setSelectedJob(job)}
+                                                        onClick={() => openJob(job)}
                                                         style={{
                                                             color: '#646cff', fontWeight: 600, background: 'none', border: 'none',
                                                             cursor: 'pointer', padding: 0, fontSize: '13px'
@@ -514,7 +552,7 @@ const Marketplace = () => {
             {selectedJob && (
                 <JobDetailModal
                     job={selectedJob}
-                    onClose={() => setSelectedJob(null)}
+                    onClose={closeJob}
                     onApply={handleApply}
                     onJobUpdate={(jobId, updates) => {
                         // Update in search list (will be filtered out if filled)

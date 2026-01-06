@@ -2,6 +2,18 @@ import { CheckCircle2, Megaphone } from 'lucide-react';
 
 const updates = [
     {
+        id: '2',
+        date: '6. Januar 2026',
+        title: 'Marktplatz & Profil Erweiterungen',
+        description: 'Wir haben das Nutzererlebnis im Marktplatz und im Profilbereich mit neuen Funktionen erweitert:',
+        features: [
+            'Google Maps Integration: Standorte werden nun direkt auf einer Karte angezeigt, inklusive Routenplanung per Klick.',
+            'Diplom-Upload: Lehrpersonen können nun ihre Diplome und Zertifikate sicher im privaten Profilbereich hinterlegen.',
+            'Like & Share: Setzen Sie interessante Inserate auf Ihre persönliche Merkliste (Favoriten) oder teilen Sie diese direkt per Link.'
+        ],
+        type: 'feature'
+    },
+    {
         id: '1',
         date: '2. Januar 2026',
         title: 'Erweiterte Export-Formate für den Planer',

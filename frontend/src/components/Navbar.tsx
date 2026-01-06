@@ -1,27 +1,24 @@
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, Menu, X } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
 import '../styles/Navbar.css';
 
 function Navbar() {
     const navigate = useNavigate();
     const { currentUser, userProfile, logout, signInWithGoogle } = useAuth();
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const location = useLocation();
+
+    // Close menu when route changes
+    useEffect(() => {
+        setIsMenuOpen(false);
+    }, [location]);
 
     const handleLogin = async () => {
         try {
             await signInWithGoogle();
-            // After login, if they have no profile, redirect to onboarding? 
-            // Or typically we stay on the page. But user requested:
-            // "If user logged in and profile incomplete -> Onboarding".
-            // Since context updates async, check logic might be tricky here.
-            // But simpler: Login Popup closes -> User is on Home.
-            // If they try to click Planner -> handleAction takes over.
-            // But "Anmelden" specifically often signifies just "Sign In".
-            // We can optionally check:
-            // const user = auth.currentUser;
-            // if (user) fetchProfile...
-            // For now, let's just Sign In. The UI will update to show "User Profile"
         } catch (error) {
             console.error("Login failed", error);
         }
@@ -36,15 +33,24 @@ function Navbar() {
         }
     };
 
+    const toggleMenu = () => {
+        setIsMenuOpen(!isMenuOpen);
+    };
+
     return (
         <nav className="navbar">
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '1280px', margin: '0 auto' }}>
-                <Link to="/" className="navbar-logo">
-                    <img src="/logo.png" alt="Mibuntu Logo" className="logo-image" />
-                    <span className="logo-text">Mibuntu</span>
-                </Link>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '1280px', margin: '0 auto', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <button className="mobile-menu-toggle" onClick={toggleMenu} aria-label="Menu">
+                        {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
+                    <Link to="/" className="navbar-logo">
+                        <img src="/logo.png" alt="Mibuntu Logo" className="logo-image" />
+                        <span className="logo-text">Mibuntu</span>
+                    </Link>
+                </div>
 
-                <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                <div className="navbar-center">
                     <div className="navbar-links">
                         <Link to="/planner" className="nav-link">Planer</Link>
                         <Link to="/marketplace" className="nav-link">Marktplatz</Link>
@@ -95,6 +101,15 @@ function Navbar() {
                     )}
                 </div>
             </div>
+
+            {/* Mobile Menu */}
+            {isMenuOpen && (
+                <div className="mobile-menu">
+                    <Link to="/planner" className="mobile-nav-link">Planer</Link>
+                    <Link to="/marketplace" className="mobile-nav-link">Marktplatz</Link>
+                    <Link to="/updates" className="mobile-nav-link">Updates</Link>
+                </div>
+            )}
         </nav>
     );
 }
