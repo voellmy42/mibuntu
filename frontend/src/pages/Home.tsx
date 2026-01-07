@@ -79,7 +79,7 @@ function Home() {
                         <div>
                             <div style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '8px',
-                                color: '#D92D20', fontWeight: 600, marginBottom: '16px'
+                                color: 'var(--color-brand)', fontWeight: 600, marginBottom: '16px'
                             }}>
                                 <AlertTriangle size={20} />
                                 <span>Das Problem</span>
@@ -157,7 +157,7 @@ function Home() {
                         position: 'relative',
                         overflow: 'hidden'
                     }}>
-                        <div style={{ position: 'absolute', top: '24px', right: '24px', background: '#DBEAFE', color: '#1E40AF', padding: '4px 12px', borderRadius: '99px', fontSize: '12px', fontWeight: 700 }}>
+                        <div style={{ position: 'absolute', top: '24px', right: '24px', background: 'var(--color-brand-light)', color: 'var(--color-brand)', padding: '4px 12px', borderRadius: '99px', fontSize: '12px', fontWeight: 700 }}>
                             PREMIUM
                         </div>
                         <div style={{
@@ -287,7 +287,7 @@ function Home() {
             </div>
 
             {/* Mission Statement */}
-            <div style={{ backgroundColor: '#111827', color: 'white', padding: '80px 0', textAlign: 'center' }}>
+            <div style={{ backgroundColor: 'var(--color-secondary)', color: 'white', padding: '80px 0', textAlign: 'center' }}>
                 <div className="container">
                     <h2 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '24px', color: 'white' }}>Unsere Mission</h2>
                     <p style={{ fontSize: '18px', maxWidth: '700px', margin: '0 auto', lineHeight: '1.6', color: '#9CA3AF' }}>

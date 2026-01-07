@@ -2,6 +2,19 @@ import { CheckCircle2, Megaphone } from 'lucide-react';
 
 const updates = [
     {
+        id: '3',
+        date: '7. Januar 2026',
+        title: 'Visual Upgrade & Stripe Integration',
+        description: 'Wir haben Mibuntu visuell überarbeitet und die Bezahlfunktionen finalisiert:',
+        features: [
+            'Neues Design: Frisches Logo und modernes Farbschema (Mibuntu Red) im gesamten App-Bereich.',
+            'Stripe Payments: Vollständige Integration von Kreditkartenzahlungen für Premium-Abonnements.',
+            'Mobile Menu: Optimierte Navigation für Smartphones und Tablets.',
+            'Lokalisierung: Paywall und Bezahlprozesse sind nun vollständig auf Deutsch.'
+        ],
+        type: 'update'
+    },
+    {
         id: '2',
         date: '6. Januar 2026',
         title: 'Marktplatz & Profil Erweiterungen',

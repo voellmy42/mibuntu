@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles } from 'lucide-react';
+
 import '../styles/Login.css';
 
 const Login: React.FC = () => {
@@ -66,7 +66,7 @@ const Login: React.FC = () => {
 
             <div className="login-card">
                 <div className="login-logo-wrapper">
-                    <Sparkles size={40} strokeWidth={1.5} />
+                    <img src="/logo.jpg" alt="Mibuntu" style={{ width: '80px', height: 'auto' }} />
                 </div>
 
                 <h1 className="login-title">

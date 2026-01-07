@@ -7,10 +7,11 @@
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
 
-  --color-primary: #646cff;
-  --color-brand: #646cff;
+  --color-primary: #B9283D;
+  --color-brand: #B9283D;
+  --color-secondary: #1C5861;
   /* Alias for brand color */
-  --color-brand-light: #e0e7ff;
+  --color-brand-light: #fadadd;
   --color-text-primary: #213547;
   --color-text-secondary: #6b7280;
   --color-text-tertiary: #9ca3af;

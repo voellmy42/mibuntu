@@ -45,7 +45,7 @@ function Navbar() {
                         {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
                     <Link to="/" className="navbar-logo">
-                        <img src="/logo.png" alt="Mibuntu Logo" className="logo-image" />
+                        <img src="/logo.jpg" alt="Mibuntu Logo" className="logo-image" />
                         <span className="logo-text">Mibuntu</span>
                     </Link>
                 </div>
