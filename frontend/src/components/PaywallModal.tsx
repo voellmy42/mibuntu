@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { collection, addDoc, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Check, X } from 'lucide-react';
 import '../styles/design_tokens.css';
@@ -27,27 +27,44 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
         setErrorMessage(null); // Clear previous errors
         try {
             console.log("Initiating payment for user:", currentUser.uid);
+
+            // Debug: Check if customer document exists
+            const customerDocRef = doc(db, 'customers', currentUser.uid);
+            const customerDoc = await getDoc(customerDocRef);
+
+            if (customerDoc.exists()) {
+                console.log("Customer document found:", customerDoc.data());
+            } else {
+                console.warn("Customer document NOT found. The extension might have failed to create it on signup.");
+            }
+
             // 1. Create a checkout session in Firestore
             const collectionRef = collection(db, 'customers', currentUser.uid, 'checkout_sessions');
 
             // Map plans to Stripe Price IDs
             const PRICE_IDS = {
-                monthly: 'price_1Sl4GnRyw3CBVJ4GW2oFvHiA', // Current ID (Verify if this is for 5 CHF)
+                // TODO: Verify these Price IDs match your Stripe Dashboard (Live Mode for actual money)
+                monthly: 'price_1Sl4GnRyw3CBVJ4GW2oFvHiA',
                 yearly: 'price_YEARLY_PLACEHOLDER'
             };
 
             const priceId = PRICE_IDS[selectedPlan];
 
             if (priceId === 'price_YEARLY_PLACEHOLDER') {
-                setErrorMessage("Yearly plan is coming soon!");
+                setErrorMessage("Das jährliche Abo ist bald verfügbar!");
                 setLoading(false);
                 return;
             }
 
+            // Enhanced session creation with email to fallback if customer record is missing
             const docRef = await addDoc(collectionRef, {
                 price: priceId,
                 success_url: window.location.origin,
                 cancel_url: window.location.origin,
+                customer_email: currentUser.email, // This helps Stripe create a customer if missing
+                metadata: {
+                    firebase_uid: currentUser.uid // Extra tracking
+                }
             });
 
             console.log("Checkout session document created with ID:", docRef.id);
@@ -57,21 +74,23 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
             const timeoutId = setTimeout(() => {
                 if (unsubscribe) unsubscribe();
                 setLoading(false);
-                const msg = "Payment system is not responding. Please contact support or check if the Stripe Extension is active.";
+                const msg = "Das Zahlungssystem antwortet nicht. Bitte versuchen Sie es später erneut oder kontaktieren Sie den Support.";
                 console.error("Payment timeout:", msg);
                 setErrorMessage(msg);
-            }, 15000); // 15 seconds timeout
+            }, 10000); // Reduced to 10 seconds for better feedback loop
 
             unsubscribe = onSnapshot(docRef, (snap) => {
                 const data = snap.data();
                 if (!data) return;
+
+                console.log("Stripe Session Data:", data);
 
                 const { error, url } = data;
 
                 if (error) {
                     clearTimeout(timeoutId);
                     console.error('Stripe error:', error.message);
-                    setErrorMessage(`An error occurred: ${error.message}`);
+                    setErrorMessage(`Ein Fehler ist aufgetreten via Stripe: ${error.message}`);
                     setLoading(false);
                     if (unsubscribe) unsubscribe();
                 }
@@ -87,7 +106,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
 
         } catch (error: any) {
             console.error("Payment initiation failed:", error);
-            setErrorMessage(`Could not start payment: ${error.message || "Unknown error"}`);
+            setErrorMessage(`Konnte Zahlung nicht starten: ${error.message || "Unbekannter Fehler"}`);
             setLoading(false);
         }
     };
@@ -145,7 +164,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
                             fontSize: 'var(--font-size-sm)',
                             fontWeight: '600'
                         }}>
-                            You hit your free limit
+                            Sie haben Ihr kostenloses Limit erreicht
                         </span>
                     </div>
                     <h2 style={{
@@ -155,7 +174,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
                         marginBottom: 'var(--spacing-lg)',
                         color: 'var(--color-text-primary)'
                     }}>
-                        Continue creating with Premium.
+                        Erstellen Sie weiter mit Premium.
                     </h2>
                     <p style={{
                         fontSize: 'var(--font-size-base)',
@@ -163,14 +182,14 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
                         marginBottom: 'var(--spacing-xl)',
                         lineHeight: '1.6'
                     }}>
-                        Unlock unlimited AI usage and take your lessons to the next level.
+                        Schalten Sie unbegrenzte KI-Nutzung frei und heben Sie Ihren Unterricht auf die nächste Stufe.
                     </p>
 
                     <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         {[
-                            "Unlimited AI Interactions",
-                            "Generate PDFs & Slides",
-                            "Priority Speed"
+                            "Unbegrenzte KI-Interaktionen",
+                            "Erstelle PDFs & Slides",
+                            "Priorisierte Geschwindigkeit"
                         ].map((benefit, index) => (
                             <li key={index} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', fontSize: 'var(--font-size-base)' }}>
                                 <div style={{
@@ -215,7 +234,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
                                     color: selectedPlan === 'monthly' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'
                                 }}
                             >
-                                Monthly
+                                Monatlich
                             </button>
                             <button
                                 disabled
@@ -231,7 +250,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
                                     opacity: 0.6
                                 }}
                             >
-                                Yearly (Soon)
+                                Jährlich (Bald)
                             </button>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', lineHeight: 1 }}>
@@ -276,10 +295,10 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen }) => {
                                 opacity: loading ? 0.7 : 1
                             }}
                         >
-                            {loading ? "Processing..." : "Start Subscription"}
+                            {loading ? "Verarbeite..." : "Abo starten"}
                         </button>
                         <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--color-text-tertiary)', marginTop: '8px' }}>
-                            Secured by Stripe
+                            Gesichert durch Stripe
                         </p>
                     </div>
                 </div>
