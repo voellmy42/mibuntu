@@ -16,6 +16,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { BookOpen, MessageSquare, Download } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import PaywallModal from '../components/PaywallModal';
+import { getUserConversations, saveConversation, deleteConversation, type Conversation, type ConversationContext } from '../services/chatService';
 
 
 // ... (rest of imports)
@@ -56,6 +57,10 @@ const Planner = () => {
     const [isGeneratingPpt, setIsGeneratingPpt] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
+
+    // History State
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
     const hasUnappliedChanges =
         JSON.stringify(activeSelectedModules.sort()) !== JSON.stringify(draftSelectedModules.sort()) ||
@@ -109,7 +114,53 @@ const Planner = () => {
             text: `Quellen aktualisiert (${draftSelectedModules.length} Module, ${draftUploadedFiles.filter(f => f.isActive !== false).length} aktive Dateien). Ich bin bereit.`
         }]);
         setIsContextReloading(false);
+    };
+
+    const loadConversations = useCallback(async () => {
+        if (!currentUser) return;
+        try {
+            console.log("DEBUG: Loading conversations for user", currentUser.uid);
+            const userConversations = await getUserConversations(currentUser.uid);
+            console.log("DEBUG: Loaded conversations:", userConversations);
+            setConversations(userConversations);
+        } catch (error) {
+            console.error("Failed to load conversations", error);
+        }
+    }, [currentUser]);
+
+    useEffect(() => {
+        if (currentUser) {
+            loadConversations();
+        }
+    }, [currentUser, loadConversations]);
+
+    const handleSelectConversation = (conversation: Conversation) => {
+        setActiveConversationId(conversation.id);
+        setMessages(conversation.messages);
+        setActiveSelectedModules(conversation.context.selectedModules);
+        setDraftSelectedModules(conversation.context.selectedModules); // synced
+
+        // Handle potentially missing files properties or map them
+        const files = conversation.context.uploadedFiles || [];
+        setActiveUploadedFiles(files);
+        setDraftUploadedFiles(files);
+
+        setActiveCycle(conversation.context.cycle);
+        setActiveWishes(conversation.context.wishes);
+        setIsSetupComplete(true);
         if (isMobile) setActiveTab('chat');
+    };
+
+    const handleDeleteConversation = async (conversationId: string) => {
+        try {
+            await deleteConversation(conversationId);
+            setConversations(prev => prev.filter(c => c.id !== conversationId));
+            if (activeConversationId === conversationId) {
+                handleReset();
+            }
+        } catch (error) {
+            console.error("Failed to delete conversation", error);
+        }
     };
 
     // ... (Keep fetchLehrplanContext)
@@ -220,6 +271,52 @@ const Planner = () => {
             setIsProcessing(false);
         }
     }, [currentUser, userProfile, activeCycle, activeWishes, activeUploadedFiles, fetchLehrplanContext, incrementUsage]); // Added basic deps, might need more refinement
+
+    // Auto-save Conversation
+    useEffect(() => {
+        // DEBUG LOGS
+        console.log("DEBUG: Auto-save check", {
+            hasUser: !!currentUser,
+            msgCount: messages.length,
+            isSetupComplete
+        });
+
+        if (!currentUser || messages.length === 0 || !isSetupComplete) return;
+
+        const saveTimeout = setTimeout(async () => {
+            console.log("DEBUG: Auto-save triggering...");
+
+            const context: ConversationContext = {
+                selectedModules: activeSelectedModules,
+                uploadedFiles: activeUploadedFiles,
+                cycle: activeCycle,
+                wishes: activeWishes
+            };
+
+            const conversationData: Conversation = {
+                id: activeConversationId || Date.now().toString(),
+                userId: currentUser.uid,
+                title: messages[0].text.slice(0, 50) + (messages[0].text.length > 50 ? '...' : ''),
+                messages: messages,
+                context: context
+            };
+
+            if (!activeConversationId) {
+                console.log("DEBUG: Setting new Conversation ID", conversationData.id);
+                setActiveConversationId(conversationData.id);
+            }
+
+            try {
+                await saveConversation(conversationData);
+                console.log("DEBUG: Conversation saved successfully");
+                loadConversations();
+            } catch (error) {
+                console.error("DEBUG: Auto-save failed", error);
+            }
+        }, 2000);
+
+        return () => clearTimeout(saveTimeout);
+    }, [messages, activeSelectedModules, activeUploadedFiles, activeCycle, activeWishes, currentUser, activeConversationId, isSetupComplete, loadConversations]);
 
     const handleSend = () => {
         processMessage(input);
@@ -521,6 +618,7 @@ const Planner = () => {
         setDraftSelectedModules([]);
         setDraftUploadedFiles([]);
         setActiveUploadedFiles([]);
+        setActiveConversationId(null);
     };
 
     if (!isSetupComplete) {
@@ -570,6 +668,11 @@ const Planner = () => {
                             hasUnappliedChanges={hasUnappliedChanges}
                             isChatMode={true}
                             onReset={handleReset}
+                            // History Props
+                            conversations={conversations}
+                            onSelectConversation={handleSelectConversation}
+                            onDeleteConversation={handleDeleteConversation}
+                            activeConversationId={activeConversationId || undefined}
                         />
                     </div>
                 )}
